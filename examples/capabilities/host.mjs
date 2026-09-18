@@ -38,9 +38,8 @@ export async function installCapabilities(sandbox, { root, allowedOrigins = [], 
   const timers = new Map();
   async function emit(kind, data) {
     if (disposed || !dispatch || sandbox.disposed) return;
-    const result = await dispatch.call(undefined, [kind, data]);
-    try { const settled = await result.await(); await settled.dispose(); }
-    finally { await result.dispose(); }
+    await using result = await dispatch.call(undefined, [kind, data]);
+    await using settled = await result.await();
   }
   const http = createFetchHost({ emit, allowedOrigins });
   const sockets = createWebSocketHost({ emit, allowedOrigins });
@@ -82,9 +81,10 @@ export async function installCapabilities(sandbox, { root, allowedOrigins = [], 
       timers.clear();
       await http.dispose(); await sockets.dispose();
       if (!sandbox.disposed && installed) {
-        try { const result = await installed.invoke('dispose'); await result.dispose(); } catch { /* Sandbox may already be retiring. */ }
+        try { await using result = await installed.invoke('dispose'); } catch { /* Sandbox may already be retiring. */ }
       }
       await dispatch?.dispose(); await installed?.dispose();
     },
+    async [Symbol.asyncDispose]() { await this.dispose(); },
   };
 }

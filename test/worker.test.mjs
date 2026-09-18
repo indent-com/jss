@@ -29,15 +29,12 @@ test('cancellation during worker startup terminates the owned worker', { timeout
 });
 
 test('unexpected worker exit rejects outstanding requests and retires its sandbox', { timeout: 10_000 }, async () => {
-  const worker = new Worker(new URL('../dist/node-worker.js', import.meta.url), { execArgv: [] });
-  let sandbox;
-  try {
-    sandbox = await createSandbox({ workerFactory: () => worker });
-    const pending = sandbox.evaluate('new Promise(() => {})', { timeoutMs: 5_000 });
-    const rejected = assert.rejects(pending, error => error.code === 'ERR_WORKER');
-    await worker.terminate();
-    await rejected;
-    assert.equal(sandbox.disposed, true);
-    await assert.rejects(sandbox.evaluate('42'), error => error.code === 'ERR_DISPOSED');
-  } finally { await sandbox?.dispose(); await worker.terminate(); }
+  await using worker = new Worker(new URL('../dist/node-worker.js', import.meta.url), { execArgv: [] });
+  await using sandbox = await createSandbox({ workerFactory: () => worker });
+  const pending = sandbox.evaluate('new Promise(() => {})', { timeoutMs: 5_000 });
+  const rejected = assert.rejects(pending, error => error.code === 'ERR_WORKER');
+  await worker.terminate();
+  await rejected;
+  assert.equal(sandbox.disposed, true);
+  await assert.rejects(sandbox.evaluate('42'), error => error.code === 'ERR_DISPOSED');
 });

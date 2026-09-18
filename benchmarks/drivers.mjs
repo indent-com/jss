@@ -21,11 +21,16 @@ export function nodeDriver(source) {
   globalThis.hostEcho = echo;
   globalThis.hostCopy = copy;
   runInThisContext(source, { filename: 'benchmarks/workloads.js' });
-  return { id: 'node', name: 'Node', run: (...args) => timed(benchPrepare, benchRun, benchIdentity, ...args), async dispose() {} };
+  return {
+    id: 'node', name: 'Node', run: (...args) => timed(benchPrepare, benchRun, benchIdentity, ...args),
+    async dispose() {},
+    async [Symbol.asyncDispose]() { await this.dispose(); },
+  };
 }
 
 export async function nodeWorkerDriver(source) {
-  const worker = new Worker(new URL('./node-worker.mjs', import.meta.url), { workerData: { source }, execArgv: [] });
+  await using setup = new AsyncDisposableStack();
+  const worker = setup.use(new Worker(new URL('./node-worker.mjs', import.meta.url), { workerData: { source }, execArgv: [] }));
   let pending, failed;
   const ready = new Promise((resolve, reject) => { pending = { resolve, reject }; });
   const fail = error => { failed = error; pending?.reject(error); pending = undefined; };
@@ -50,35 +55,40 @@ export async function nodeWorkerDriver(source) {
     pending = { resolve, reject };
     worker.postMessage({ name, count, seed, prepare });
   });
+  const resources = setup.move();
   return {
     id: 'node-worker', name: 'Node worker',
     run: (...args) => timed(
       (...values) => request(...values, true), request,
       seed => request('identity', 1, seed), ...args),
-    async dispose() { await worker.terminate(); },
+    async dispose() { await resources.disposeAsync(); },
+    async [Symbol.asyncDispose]() { await this.dispose(); },
   };
 }
 
 export async function jssDriver(execution, source) {
-  const sandbox = await createSandbox({ execution, timeoutMs: 30_000, memoryLimitBytes: 64 * 1024 * 1024, stackLimitBytes: 512 * 1024 });
-  try {
-    await sandbox.expose('hostEcho', echo);
-    await sandbox.expose('hostCopy', copy);
-    await sandbox.evaluate(source + '\nundefined');
-    return {
-      id: `jss-${execution}`, name: `JSS ${execution}`,
-      run: (...args) => timed(
-        (...values) => sandbox.call('benchPrepare', values),
-        (...values) => sandbox.call('benchRun', values),
-        seed => sandbox.call('benchIdentity', [seed]), ...args),
-      async dispose() { await sandbox.dispose(); },
-    };
-  } catch (error) { await sandbox.dispose(); throw error; }
+  await using setup = new AsyncDisposableStack();
+  const sandbox = setup.use(await createSandbox({ execution, timeoutMs: 30_000, memoryLimitBytes: 64 * 1024 * 1024, stackLimitBytes: 512 * 1024 }));
+  await sandbox.expose('hostEcho', echo);
+  await sandbox.expose('hostCopy', copy);
+  await sandbox.evaluate(source + '\nundefined');
+  const resources = setup.move();
+  return {
+    id: `jss-${execution}`, name: `JSS ${execution}`,
+    run: (...args) => timed(
+      (...values) => sandbox.call('benchPrepare', values),
+      (...values) => sandbox.call('benchRun', values),
+      seed => sandbox.call('benchIdentity', [seed]), ...args),
+    async dispose() { await resources.disposeAsync(); },
+    async [Symbol.asyncDispose]() { await this.dispose(); },
+  };
 }
 
 export async function quickjsDriver(binary, sourcePath) {
+  await using setup = new AsyncDisposableStack();
   const process = spawn(binary, [sourcePath], { stdio: ['pipe', 'pipe', 'pipe'] });
-  const input = createInterface({ input: process.stdout });
+  setup.defer(() => { process.stdin.end(); process.kill(); });
+  const input = setup.use(createInterface({ input: process.stdout }));
   const lines = input[Symbol.asyncIterator]();
   let stderr = '', failure;
   process.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-16_384); });
@@ -92,12 +102,14 @@ export async function quickjsDriver(binary, sourcePath) {
   };
   const metadata = await next();
   if (!metadata.ready) throw new Error('Native QuickJS did not initialize');
+  const resources = setup.move();
   return {
     id: 'quickjs', name: 'Native QuickJS', metadata,
     async run(name, count, seed) {
       process.stdin.write(`${name} ${count} ${seed}\n`);
       return next(); // C times execution; pipe I/O is outside that interval.
     },
-    async dispose() { process.stdin.end(); input.close(); process.kill(); },
+    async dispose() { await resources.disposeAsync(); },
+    async [Symbol.asyncDispose]() { await this.dispose(); },
   };
 }

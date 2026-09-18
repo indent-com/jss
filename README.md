@@ -12,17 +12,16 @@ npm install @indent-com/jss
 ```
 
 ```ts
-import { evaluate, withSandbox } from '@indent-com/jss';
+import { evaluate, createSandbox } from '@indent-com/jss';
 
 const answer = await evaluate<number>('6 * 7'); // 42
 
-const greeting = await withSandbox({ globals: { name: 'Ada' } }, async sandbox => {
-  await sandbox.expose('lookup', async (name: string) => ({ name, role: 'engineer' }));
-  return sandbox.evaluate<string>(`
-    const person = await lookup(name);
-    person.name + ' is an ' + person.role
-  `);
-});
+await using sandbox = await createSandbox({ globals: { name: 'Ada' } });
+await sandbox.expose('lookup', async (name: string) => ({ name, role: 'engineer' }));
+const greeting = await sandbox.evaluate<string>(`
+  const person = await lookup(name);
+  person.name + ' is an ' + person.role
+`);
 ```
 
 Top-level `await` is supported without wrapping your source in a function.
@@ -34,25 +33,28 @@ the result you expect; they do not validate guest values.
 ```ts
 import { createSandbox } from '@indent-com/jss';
 
-const sandbox = await createSandbox({
+await using sandbox = await createSandbox({
   execution: 'worker',
   timeoutMs: 1_000,
   memoryLimitBytes: 64 * 1024 * 1024,
   stackLimitBytes: 512 * 1024,
 });
 
-try {
-  await sandbox.set('factor', 7);
-  await sandbox.evaluate('async function multiply(n) { return n * factor }');
-  console.log(await sandbox.call<number>('multiply', [6])); // 42
-} finally {
-  await sandbox.dispose();
-}
+await sandbox.set('factor', 7);
+await sandbox.evaluate('async function multiply(n) { return n * factor }');
+console.log(await sandbox.call<number>('multiply', [6])); // 42
 ```
 
 `evaluate(source, options)` creates a sandbox and disposes it after copying its
 result. `withSandbox(options, fn)` keeps it alive for your callback and always
 cleans up afterward. `createSandbox(options)` gives you explicit ownership.
+
+`await using` awaits cleanup at the end of the enclosing scope, including on
+return or throw, in reverse declaration order. It uses `Symbol.asyncDispose` on
+both sandboxes and handles. Native syntax requires Node 24+ or a supporting
+browser; TypeScript 5.2+ can compile it for older runtimes (include
+`ESNext.Disposable` in `lib`). The compiled library supports Node 22+ and supplies
+`Symbol.asyncDispose` in browsers that lack it.
 
 | Sandbox operation | Result |
 | --- | --- |
@@ -79,21 +81,13 @@ Use handles for functions, symbols, accessors, class instances, cyclic graphs or
 values you do not want to copy.
 
 ```ts
-const counter = await sandbox.evaluateHandle(`({
+await using counter = await sandbox.evaluateHandle(`({
   value: 40,
   add(n) { this.value += n; return this.value }
 })`);
 
-try {
-  const result = await counter.invoke('add', [2]);
-  try {
-    console.log(await result.dump<number>()); // 42
-  } finally {
-    await result.dispose();
-  }
-} finally {
-  await counter.dispose();
-}
+await using result = await counter.invoke('add', [2]);
+console.log(await result.dump<number>()); // 42
 ```
 
 Each returned handle is owned. `dup()` creates an independently owned reference;
@@ -120,18 +114,15 @@ the guest invokes the function, before later guest mutations can change them;
 `createFunction()` provides a receiver handle and an array of argument handles:
 
 ```ts
-const echo = await sandbox.createFunction(async (_receiver, args) => args[0]);
-try {
-  await sandbox.set('echo', echo);
-  console.log(await sandbox.evaluate('await echo({ answer: 42 })'));
-} finally {
-  await echo.dispose();
-}
+await using echo = await sandbox.createFunction(async (_receiver, args) => args[0]);
+await sandbox.set('echo', echo);
+console.log(await sandbox.evaluate('await echo({ answer: 42 })'));
 ```
 
 Callback handles remain valid until the callback settles. Call `dup()` to retain
 one beyond that scope, and dispose the duplicate when finished. Returning a
-same-sandbox handle preserves its guest identity.
+same-sandbox handle preserves its guest identity. Receiver and argument handles
+are borrowed; reserve `await using` for handles you own, such as a `dup()` result.
 
 ## Values and errors
 
@@ -205,7 +196,7 @@ cross-origin-isolation headers are required.
 For custom asset pipelines:
 
 ```ts
-const sandbox = await createSandbox({
+await using sandbox = await createSandbox({
   wasmUrl: new URL('/assets/quickjs.wasm', location.href),
   workerFactory: () => new Worker('/assets/jss-worker.js', { type: 'module' }),
 });
@@ -255,7 +246,7 @@ and consumer-type checks run alongside it. The same WASM artifact serves every
 supported platform, with no OS, architecture, libc or Node-version test matrix.
 
 Runnable examples live in [examples](examples): `node examples/basic.mjs` and
-`node examples/handles.mjs` after building.
+`node examples/handles.mjs` after building, with Node 24+ for native `await using`.
 
 `node examples/fibonacci.mjs 100` computes Fibonacci in an off-thread guest using
 `BigInt`. `node examples/capabilities.mjs` runs a type-checked TypeScript program

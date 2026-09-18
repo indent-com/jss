@@ -45,13 +45,14 @@ const nativeOutput = execFileSync('nix', ['build', `path:${root}#benchmark-nativ
 const nativeBinary = `${nativeOutput}/bin/jss-benchmark-native`;
 snapshot.nativeBinarySHA256 = sha256(await readFile(nativeBinary));
 
-const drivers = [], results = [];
-try {
-  drivers.push(nodeDriver(source));
-  drivers.push(await nodeWorkerDriver(source));
-  drivers.push(await quickjsDriver(nativeBinary, `${root}benchmarks/workloads.js`));
-  drivers.push(await jssDriver('inline', source));
-  drivers.push(await jssDriver('worker', source));
+const results = [];
+{
+  await using node = nodeDriver(source);
+  await using nodeWorker = await nodeWorkerDriver(source);
+  await using quickjs = await quickjsDriver(nativeBinary, `${root}benchmarks/workloads.js`);
+  await using inline = await jssDriver('inline', source);
+  await using worker = await jssDriver('worker', source);
+  const drivers = [node, nodeWorker, quickjs, inline, worker];
   snapshot.native = drivers.find(driver => driver.id === 'quickjs').metadata;
 
   // Cross-engine checks are outside measurement; no logging or reference work
@@ -119,8 +120,6 @@ try {
   await writeFile('benchmarks/results.json', JSON.stringify(data, null, 2) + '\n');
   await writeFile('BENCHMARKS.md', report(data));
   console.error('Wrote BENCHMARKS.md and benchmarks/results.json (all checksums matched).');
-} finally {
-  for (const driver of drivers.reverse()) await driver.dispose();
 }
 
 function report({ environment: env, configuration, backends, results }) {

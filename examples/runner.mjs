@@ -9,73 +9,68 @@ import { createModuleLoader } from './capabilities/modules.mjs';
 /** Type-check first, then execute a guest module with explicitly granted capabilities. */
 export async function createRunner({ root, allowedOrigins = [], args = [], timeoutMs = 15_000, execution = 'worker', console: logger = console }) {
   if (typeof root !== 'string') throw new TypeError('A filesystem root is required');
-  const sandbox = await createSandbox({ execution, timeoutMs, memoryLimitBytes: 128 * 1024 * 1024, globals: { args } });
-  let capabilities, modules;
+  await using setup = new AsyncDisposableStack();
+  const sandbox = setup.use(await createSandbox({ execution, timeoutMs, memoryLimitBytes: 128 * 1024 * 1024, globals: { args } }));
+  const capabilities = setup.use(await installCapabilities(sandbox, { root, allowedOrigins, console: logger }));
+  const modules = setup.use(await createModuleLoader({ sandbox, filesystem: capabilities.filesystem, allowedOrigins }));
   const history = [];
-  async function dispose() {
-    try { await modules?.dispose(); }
-    finally { try { await capabilities?.dispose(); } finally { await sandbox.dispose(); } }
-  }
-  try {
-    capabilities = await installCapabilities(sandbox, { root, allowedOrigins, console: logger });
-    modules = await createModuleLoader({ sandbox, filesystem: capabilities.filesystem, allowedOrigins });
-    return {
-      get disposed() { return sandbox.disposed; },
-      async run(entry) {
-        const name = await modules.load(entry);
-        const namespace = await sandbox.evaluateModuleHandle(name, { timeoutMs });
-        try {
-          const result = await namespace.get('result');
-          try { return await result.dump(); } finally { await result.dispose(); }
-        } finally { await namespace.dispose(); }
-      },
-      async evaluate(source) {
-        const { code } = await modules.prepareRepl(source, history);
-        // A runtime error can leave declarations and side effects behind.
-        // Keep their types in the session; .clear creates a fresh realm.
-        history.push(source);
-        return sandbox.evaluate(code, { filename: 'jss:/__repl__.ts', timeoutMs });
-      },
-      dispose,
-    };
-  } catch (error) { await dispose(); throw error; }
+  const resources = setup.move();
+  return {
+    get disposed() { return sandbox.disposed; },
+    async run(entry) {
+      const name = await modules.load(entry);
+      await using namespace = await sandbox.evaluateModuleHandle(name, { timeoutMs });
+      await using result = await namespace.get('result');
+      return await result.dump();
+    },
+    async evaluate(source) {
+      const { code } = await modules.prepareRepl(source, history);
+      // A runtime error can leave declarations and side effects behind.
+      // Keep their types in the session; .clear creates a fresh realm.
+      history.push(source);
+      return sandbox.evaluate(code, { filename: 'jss:/__repl__.ts', timeoutMs });
+    },
+    async dispose() { await resources.disposeAsync(); },
+    async [Symbol.asyncDispose]() { await this.dispose(); },
+  };
 }
 
 export async function runScript(options) {
-  const runner = await createRunner(options);
-  try { return await runner.run(options.entry); } finally { await runner.dispose(); }
+  await using runner = await createRunner(options);
+  return await runner.run(options.entry);
 }
 
 async function repl(options) {
   let runner = await createRunner(options);
-  const lines = createInterface({ input: process.stdin, output: process.stdout, terminal: Boolean(process.stdin.isTTY) });
+  await using session = new AsyncDisposableStack();
+  // .clear replaces the current runner; final cleanup follows the latest realm.
+  session.defer(() => runner.dispose());
+  using lines = createInterface({ input: process.stdin, output: process.stdout, terminal: Boolean(process.stdin.isTTY) });
   let buffer;
   const prompt = () => { if (process.stdin.isTTY) { lines.setPrompt(buffer ? '...> ' : 'jss> '); lines.prompt(); } };
   if (process.stdin.isTTY) console.log('TypeScript QuickJS REPL. .help for commands.');
   prompt();
-  try {
-    for await (const line of lines) {
-      const command = line.trim();
-      if (command === '.exit') break;
-      if (command === '.help') console.log('.editor: multiline input; .end: evaluate; .break: discard input; .clear: new realm; .exit: quit');
-      else if (command === '.clear') { await runner.dispose(); runner = await createRunner(options); buffer = undefined; }
-      else if (command === '.break') buffer = undefined;
-      else if (command === '.editor') buffer = [];
-      else if (buffer && command !== '.end') buffer.push(line);
-      else if (command || buffer) {
-        const source = buffer ? buffer.join('\n') : line;
-        buffer = undefined;
-        try {
-          const result = await runner.evaluate(source);
-          if (result !== undefined) console.log(inspect(result, { colors: Boolean(process.stdout.isTTY), depth: 6 }));
-        } catch (error) {
-          console.error(error.message);
-          if (runner.disposed) console.error('The sandbox has been retired; use .clear for a new realm.');
-        }
+  for await (const line of lines) {
+    const command = line.trim();
+    if (command === '.exit') break;
+    if (command === '.help') console.log('.editor: multiline input; .end: evaluate; .break: discard input; .clear: new realm; .exit: quit');
+    else if (command === '.clear') { await runner.dispose(); runner = await createRunner(options); buffer = undefined; }
+    else if (command === '.break') buffer = undefined;
+    else if (command === '.editor') buffer = [];
+    else if (buffer && command !== '.end') buffer.push(line);
+    else if (command || buffer) {
+      const source = buffer ? buffer.join('\n') : line;
+      buffer = undefined;
+      try {
+        const result = await runner.evaluate(source);
+        if (result !== undefined) console.log(inspect(result, { colors: Boolean(process.stdout.isTTY), depth: 6 }));
+      } catch (error) {
+        console.error(error.message);
+        if (runner.disposed) console.error('The sandbox has been retired; use .clear for a new realm.');
       }
-      prompt();
     }
-  } finally { lines.close(); await runner.dispose(); }
+    prompt();
+  }
 }
 
 async function main(argv) {

@@ -12,29 +12,24 @@ after this document. The confirmed GitHub repository is `indent-com/jss`.
 ```ts
 import { evaluate, createSandbox } from '@indent-com/jss';
 const answer = await evaluate<number>('6 * 7');
-const sandbox = await createSandbox({
+await using sandbox = await createSandbox({
   execution: 'worker', // default; 'inline' is explicit
   memoryLimitBytes: 64 * 1024 * 1024,
   stackLimitBytes: 512 * 1024,
   timeoutMs: 1_000,
   globals: { greeting: 'Hello' },
 });
-try {
-  await sandbox.expose('lookup', async (id: string) => ({ id, name: 'Ada' }));
-  const message = await sandbox.evaluate<string>(`
-    const person = await lookup('ada');
-    greeting + ', ' + person.name
-  `, { filename: 'greeting.js' });
+await sandbox.expose('lookup', async (id: string) => ({ id, name: 'Ada' }));
+const message = await sandbox.evaluate<string>(`
+  const person = await lookup('ada');
+  greeting + ', ' + person.name
+`, { filename: 'greeting.js' });
 
-  const counter = await sandbox.evaluateHandle(`({
-    value: 0, increment(n) { this.value += n; return this.value }
-  })`);
-  try {
-    const result = await counter.invoke('increment', [2]);
-    try { console.log(await result.dump()); }
-    finally { await result.dispose(); }
-  } finally { await counter.dispose(); }
-} finally { await sandbox.dispose(); }
+await using counter = await sandbox.evaluateHandle(`({
+  value: 0, increment(n) { this.value += n; return this.value }
+})`);
+await using result = await counter.invoke('increment', [2]);
+console.log(await result.dump());
 ```
 
 Compile TypeScript to ESM and declarations. Ship one portable WASM artifact with
@@ -50,7 +45,7 @@ result types document expectations; they do not validate guest output.
 | High-level method | Contract |
 | --- | --- |
 | `createSandbox(options)` | New isolated persistent sandbox |
-| `evaluate(source, options)` | One-shot copied result, dispose in finally |
+| `evaluate(source, options)` | One-shot copied result, scoped async disposal |
 | `withSandbox(options, fn)` | Scoped sandbox with guaranteed cleanup |
 | `sandbox.evaluate<T>(source, options)` | Await and copy script completion |
 | `sandbox.set(name, value)` / `get<T>(name)` | Literal global property access |
@@ -84,7 +79,14 @@ Arguments accept copied values or same-sandbox handles. Keys accept strings,
 numbers and symbol handles. Cross-sandbox and disposed references reject before
 engine entry. IDs include sandbox identity/generation and never expose pointers.
 All returned handles are owned; disposal of the sandbox frees every outstanding
-handle. Add Symbol.asyncDispose convenience, but explicit cleanup is the contract.
+handle. Both classes implement `Symbol.asyncDispose`: prefer `await using` for
+scope-owned resources, and `dispose()` for early release or explicit lifecycle
+transitions. Cleanup is awaited in reverse declaration order on return or throw.
+Borrowed callback handles and resources returned to a caller must outlive the
+local scope; do not bind them directly with `await using`. Node 24+ runs the
+checkout's examples and tests with native syntax. The library's TypeScript build
+lowers it to ES2022 for Node 22+ and browser consumers, installing the
+`Symbol.asyncDispose` symbol when the host lacks it.
 Cap live handles. An in-flight operation retains its operands until completion.
 
 `expose` snapshots copied arguments at guest invocation. `createFunction` receives a receiver handle and argument

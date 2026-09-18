@@ -8,6 +8,7 @@ import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, firefox, webkit } from 'playwright';
 import { build } from 'vite';
+import ts from 'typescript';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const fixture = mkdtempSync(join(tmpdir(), 'jss-browser-'));
@@ -81,7 +82,7 @@ try {
     for (const path of ['/direct/', '/nested/base/']) {
       await page.goto(`${origin}${path}`);
       await page.waitForFunction(() => globalThis.jss !== undefined);
-      const result = await page.evaluate(async () => {
+      const checks = async () => {
         const { createSandbox, evaluate } = globalThis.jss;
         const check = (condition, message) => { if (!condition) throw new Error(message); };
         const rejection = async (promise, expected) => {
@@ -94,72 +95,76 @@ try {
         check(!crossOriginIsolated, 'Test must run without cross-origin isolation');
         const verified = [];
         for (const execution of ['inline', 'worker']) {
-          const sandbox = await createSandbox({ execution, timeoutMs: 2_000 });
-          try {
-            check(await sandbox.evaluate('6 * 7') === 42, `${execution} evaluation`);
-            check(await sandbox.evaluate('await Promise.resolve(40) + 2') === 42, `${execution} top-level await`);
-            await sandbox.set('payload', { word: '\ud800\0', large: 2n ** 90n, bytes: new Uint8Array([1, 2, 3]) });
-            const copied = await sandbox.get('payload');
-            check(copied.word === '\ud800\0' && copied.large === 2n ** 90n && copied.bytes instanceof Uint8Array && copied.bytes[2] === 3, `${execution} copied values`);
-            const binary = Uint8Array.from({ length: 65_536 }, (_, i) => i & 255);
-            await sandbox.expose('echoBinary', value => value);
-            await sandbox.set('binary', binary.subarray(3, 65_533));
-            const echoed = await sandbox.evaluate('await echoBinary({ bytes: binary, marker: { $jssBytes: 0 } })');
-            check(binary.byteLength === 65_536 && echoed.bytes.byteOffset === 0 && echoed.bytes.buffer.byteLength === 65_530,
-              `${execution} binary ownership`);
-            check(echoed.marker.$jssBytes === 0 && echoed.bytes.every((value, i) => value === ((i + 3) & 255)), `${execution} binary attachments`);
-            await sandbox.expose('lookup', async id => ({ id, answer: 42 }));
-            check(await sandbox.evaluate('(await lookup("x")).answer') === 42, `${execution} callback`);
-            await sandbox.expose('reenter', async () => await sandbox.evaluate('42'));
-            check(await sandbox.evaluate('await reenter()') === 42, `${execution} callback reentrancy`);
-            const handle = await sandbox.evaluateHandle('({ value: 40, plus(n) { return this.value + n } })');
-            const answer = await handle.invoke('plus', [2]);
+          await using sandbox = await createSandbox({ execution, timeoutMs: 2_000 });
+          check(await sandbox.evaluate('6 * 7') === 42, `${execution} evaluation`);
+          check(await sandbox.evaluate('await Promise.resolve(40) + 2') === 42, `${execution} top-level await`);
+          await sandbox.set('payload', { word: '\ud800\0', large: 2n ** 90n, bytes: new Uint8Array([1, 2, 3]) });
+          const copied = await sandbox.get('payload');
+          check(copied.word === '\ud800\0' && copied.large === 2n ** 90n && copied.bytes instanceof Uint8Array && copied.bytes[2] === 3, `${execution} copied values`);
+          const binary = Uint8Array.from({ length: 65_536 }, (_, i) => i & 255);
+          await sandbox.expose('echoBinary', value => value);
+          await sandbox.set('binary', binary.subarray(3, 65_533));
+          const echoed = await sandbox.evaluate('await echoBinary({ bytes: binary, marker: { $jssBytes: 0 } })');
+          check(binary.byteLength === 65_536 && echoed.bytes.byteOffset === 0 && echoed.bytes.buffer.byteLength === 65_530,
+            `${execution} binary ownership`);
+          check(echoed.marker.$jssBytes === 0 && echoed.bytes.every((value, i) => value === ((i + 3) & 255)), `${execution} binary attachments`);
+          await sandbox.expose('lookup', async id => ({ id, answer: 42 }));
+          check(await sandbox.evaluate('(await lookup("x")).answer') === 42, `${execution} callback`);
+          await sandbox.expose('reenter', async () => await sandbox.evaluate('42'));
+          check(await sandbox.evaluate('await reenter()') === 42, `${execution} callback reentrancy`);
+          {
+            await using handle = await sandbox.evaluateHandle('({ value: 40, plus(n) { return this.value + n } })');
+            await using answer = await handle.invoke('plus', [2]);
             check(await answer.dump() === 42, `${execution} handle`);
-            await answer.dispose(); await handle.dispose();
-            await rejection(sandbox.evaluate('throw new Error("expected")'), 'ERR_GUEST');
-            check(await sandbox.evaluate('42') === 42, `${execution} recovery after guest error`);
-            if (execution === 'inline') {
-              const controller = new AbortController();
-              const timer = setTimeout(() => controller.abort(), 25);
-              try {
-                await rejection(sandbox.evaluate('await new Promise(() => { function again() { Promise.resolve().then(again) } again() })', {
-                  signal: controller.signal, timeoutMs: 2_000,
-                }), 'ERR_ABORTED');
-              } finally { clearTimeout(timer); }
-              check(sandbox.disposed, 'Inline job traffic must yield for host cancellation');
-            }
-          } finally { await sandbox.dispose(); }
+          }
+          await rejection(sandbox.evaluate('throw new Error("expected")'), 'ERR_GUEST');
+          check(await sandbox.evaluate('42') === 42, `${execution} recovery after guest error`);
+          if (execution === 'inline') {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 25);
+            try {
+              await rejection(sandbox.evaluate('await new Promise(() => { function again() { Promise.resolve().then(again) } again() })', {
+                signal: controller.signal, timeoutMs: 2_000,
+              }), 'ERR_ABORTED');
+            } finally { clearTimeout(timer); }
+            check(sandbox.disposed, 'Inline job traffic must yield for host cancellation');
+          }
           verified.push(execution);
         }
         check(await evaluate('42') === 42, 'default execution');
 
-        const responsive = await createSandbox({ execution: 'worker' });
+        await using responsive = await createSandbox({ execution: 'worker' });
         let timerRan = false;
         const loop = rejection(responsive.evaluate('while (true) {}', { timeoutMs: 400 }), 'ERR_TIMEOUT');
         await new Promise(resolve => setTimeout(() => { timerRan = true; resolve(); }, 20));
         check(timerRan && !responsive.disposed, 'Parent timer must run while guest worker is busy');
         await loop;
         check(responsive.disposed, 'Timeout must retire sandbox');
-        await responsive.dispose();
 
-        const cancelable = await createSandbox();
+        await using cancelable = await createSandbox();
         const controller = new AbortController();
         const aborted = rejection(cancelable.evaluate('while (true) {}', { timeoutMs: 5_000, signal: controller.signal }), 'ERR_ABORTED');
         setTimeout(() => controller.abort(), 25);
         await aborted;
         check(cancelable.disposed, 'Abort must retire sandbox');
-        await cancelable.dispose();
 
-        const overridden = await createSandbox({ wasmUrl: new URL('/relocated/quickjs.wasm', location.href) });
-        try { check(await overridden.evaluate('42') === 42, 'WASM asset override'); }
-        finally { await overridden.dispose(); }
-        const custom = await createSandbox({ workerFactory: () => new Worker('/pkg/dist/browser-worker.js', { type: 'module' }) });
-        try { check(await custom.evaluate('42') === 42, 'Worker factory override'); }
-        finally { await custom.dispose(); }
+        {
+          await using overridden = await createSandbox({ wasmUrl: new URL('/relocated/quickjs.wasm', location.href) });
+          check(await overridden.evaluate('42') === 42, 'WASM asset override');
+        }
+        {
+          await using custom = await createSandbox({ workerFactory: () => new Worker('/pkg/dist/browser-worker.js', { type: 'module' }) });
+          check(await custom.evaluate('42') === 42, 'Worker factory override');
+        }
         await rejection(createSandbox({ wasmUrl: '/missing-engine.wasm', startupTimeoutMs: 2_000 }));
         await rejection(createSandbox({ workerFactory: () => new Worker('/missing-worker.js', { type: 'module' }), startupTimeoutMs: 2_000 }));
         return { verified, isolated: crossOriginIsolated };
-      });
+      };
+      // Match the library's ES2022 build even where native await using is unavailable.
+      const code = ts.transpileModule(`(${checks.toString()})()`, {
+        compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+      }).outputText;
+      const result = await page.evaluate(code);
       assert.deepEqual(result, { verified: ['inline', 'worker'], isolated: false });
       console.log(`${name}: ${path} inline/worker, callbacks, handles, timeouts, abort, asset overrides passed`);
     }

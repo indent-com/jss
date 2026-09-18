@@ -4,6 +4,11 @@ import { SandboxError, failure, fromWire, toWire } from './errors.js';
 import { connectInline, connectWorker, type Adapter, type Transport, type WorkerLike } from './transport.js';
 export { SandboxError } from './errors.js';
 
+// TypeScript lowers await using syntax; older browsers also need its well-known symbol.
+if (Symbol.asyncDispose === undefined) {
+  Object.defineProperty(Symbol, 'asyncDispose', { value: Symbol.for('Symbol.asyncDispose') });
+}
+
 export interface ExecutionOptions {
   filename?: string;
   timeoutMs?: number;
@@ -212,15 +217,14 @@ export class Sandbox {
   async global(options: ExecutionOptions = {}): Promise<Handle> { return this._wrap(await this._request('global', [], options)); }
   async set(name: string, value: unknown): Promise<void> {
     this.#name(name);
-    const global = await this.global();
-    try { await global.set(name, value); } finally { await global.dispose(); }
+    await using global = await this.global();
+    await global.set(name, value);
   }
   async get<T = unknown>(name: string): Promise<T> {
     this.#name(name);
-    const global = await this.global();
-    let result: Handle | undefined;
-    try { result = await global.get(name); return await result.dump<T>(); }
-    finally { await result?.dispose(); await global.dispose(); }
+    await using global = await this.global();
+    await using result = await global.get(name);
+    return await result.dump<T>();
   }
   async call<T = unknown>(name: string, args: readonly unknown[] = [], options: ExecutionOptions = {}): Promise<T> {
     this.#name(name);
@@ -249,8 +253,8 @@ export class Sandbox {
   async createFunction(fn: HandleFunction): Promise<Handle> { return this.#register(fn, true); }
   async expose(name: string, fn: HostFunction): Promise<void> {
     this.#name(name);
-    const handle = await this.#register(fn, false);
-    try { await this.set(name, handle); } finally { await handle.dispose(); }
+    await using handle = await this.#register(fn, false);
+    await this.set(name, handle);
   }
   async #hostCall(callId: number, functionId: number, thisId: number, args: number[], copied?: WireValue[]): Promise<void> {
     if (this.#closed) return;
@@ -337,8 +341,8 @@ export class Handle {
 export function createAPI(adapter: Adapter) {
   const createSandbox = (options: SandboxOptions = {}): Promise<Sandbox> => Sandbox._create(options, adapter);
   const withSandbox = async <T>(options: SandboxOptions, fn: (sandbox: Sandbox) => T | Promise<T>): Promise<T> => {
-    const sandbox = await createSandbox(options);
-    try { return await fn(sandbox); } finally { await sandbox.dispose(); }
+    await using sandbox = await createSandbox(options);
+    return await fn(sandbox);
   };
   const evaluate = async <T = unknown>(source: string, options: SandboxOptions & ExecutionOptions = {}): Promise<T> =>
     withSandbox(options, (sandbox) => sandbox.evaluate<T>(source, options));

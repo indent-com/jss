@@ -159,21 +159,19 @@ export async function createModuleLoader({
     if (!url.startsWith(ROOT)) return fetchSource(url);
     const relative = decodeURIComponent(new URL(url).pathname.slice(1));
     const path = await filesystem.pathFor(relative);
-    const file = await fs.open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-    try {
-      const info = await file.stat();
-      if (!info.isFile()) throw new TypeError('A module must be a regular file');
-      if (info.size > MAX_SOURCE_BYTES) throw new RangeError('Module source exceeds 1 MiB');
-      const data = new Uint8Array(MAX_SOURCE_BYTES + 1);
-      let bytes = 0;
-      while (bytes < data.length) {
-        const result = await file.read(data, bytes, data.length - bytes, null);
-        if (!result.bytesRead) break;
-        bytes += result.bytesRead;
-      }
-      if (bytes > MAX_SOURCE_BYTES) throw new RangeError('Module source exceeds 1 MiB');
-      return { url, source: new TextDecoder('utf-8', { fatal: true }).decode(data.subarray(0, bytes)), bytes, typescript: /\.m?ts$/i.test(path) };
-    } finally { await file.close(); }
+    await using file = await fs.open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+    const info = await file.stat();
+    if (!info.isFile()) throw new TypeError('A module must be a regular file');
+    if (info.size > MAX_SOURCE_BYTES) throw new RangeError('Module source exceeds 1 MiB');
+    const data = new Uint8Array(MAX_SOURCE_BYTES + 1);
+    let bytes = 0;
+    while (bytes < data.length) {
+      const result = await file.read(data, bytes, data.length - bytes, null);
+      if (!result.bytesRead) break;
+      bytes += result.bytesRead;
+    }
+    if (bytes > MAX_SOURCE_BYTES) throw new RangeError('Module source exceeds 1 MiB');
+    return { url, source: new TextDecoder('utf-8', { fatal: true }).decode(data.subarray(0, bytes)), bytes, typescript: /\.m?ts$/i.test(path) };
   }
 
   async function sourceFor(url) {
@@ -318,13 +316,12 @@ export async function createModuleLoader({
     }
   `);
   // Capture the callback before users can inspect globals or execute any dependency.
-  const helper = await sandbox.evaluateModuleHandle(HELPER);
-  let importFunction;
-  try {
-    importFunction = await helper.get('importModule');
+  {
+    await using helper = await sandbox.evaluateModuleHandle(HELPER);
+    await using importFunction = await helper.get('importModule');
     await sandbox.set(replImportName, importFunction);
     await sandbox.evaluate(`Object.defineProperty(globalThis, ${JSON.stringify(replImportName)}, { enumerable: false, writable: false }); void 0;`);
-  } finally { await importFunction?.dispose(); await helper.dispose(); }
+  }
 
   return {
     load,
@@ -340,5 +337,6 @@ export async function createModuleLoader({
       aliases.clear();
       try { await sandbox.evaluate(`delete globalThis[${JSON.stringify(replImportName)}]`); } catch {}
     },
+    async [Symbol.asyncDispose]() { await this.dispose(); },
   };
 }

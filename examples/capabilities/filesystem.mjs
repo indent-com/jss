@@ -41,50 +41,46 @@ export async function createFilesystem(root, { maxBytes = 8 * 1024 * 1024, maxEn
   }
   async function readBytes(path, opts) {
     const limit = count(options(opts).maxBytes, maxBytes, 'maxBytes');
-    const file = await openRead(path);
-    try {
-      const size = (await file.stat()).size;
-      if (options(opts).maxBytes === undefined && size > maxBytes) throw new RangeError('File exceeds the configured byte limit');
-      const bytes = new Uint8Array(Math.min(size, limit));
-      let offset = 0;
-      while (offset < bytes.length) {
-        const { bytesRead } = await file.read(bytes, offset, bytes.length - offset, null);
-        if (!bytesRead) break;
-        offset += bytesRead;
-      }
-      return bytes.subarray(0, offset);
-    } finally { await file.close(); }
+    await using file = await openRead(path);
+    const size = (await file.stat()).size;
+    if (options(opts).maxBytes === undefined && size > maxBytes) throw new RangeError('File exceeds the configured byte limit');
+    const bytes = new Uint8Array(Math.min(size, limit));
+    let offset = 0;
+    while (offset < bytes.length) {
+      const { bytesRead } = await file.read(bytes, offset, bytes.length - offset, null);
+      if (!bytesRead) break;
+      offset += bytesRead;
+    }
+    return bytes.subarray(0, offset);
   }
   async function readText(path, opts) {
     const settings = options(opts);
     const limit = count(settings.maxChars, Infinity, 'maxChars');
-    const file = await openRead(path);
-    try {
-      if (settings.maxChars === undefined && (await file.stat()).size > maxBytes) throw new RangeError('File exceeds the configured byte limit');
-      const decoder = new TextDecoder();
-      const chunk = new Uint8Array(16 * 1024);
-      const pieces = [];
-      let total = 0, characters = 0;
-      while (characters < limit) {
-        const { bytesRead } = await file.read(chunk, 0, Math.min(chunk.length, maxBytes - total + 1), null);
-        total += bytesRead;
-        if (total > maxBytes) throw new RangeError('Read exceeds the configured byte limit');
-        const text = decoder.decode(chunk.subarray(0, bytesRead), { stream: bytesRead !== 0 });
-        const points = Array.from(text);
-        const take = Math.min(points.length, limit - characters);
-        pieces.push(points.slice(0, take).join(''));
-        characters += take;
-        if (!bytesRead) break;
-      }
-      return pieces.join('');
-    } finally { await file.close(); }
+    await using file = await openRead(path);
+    if (settings.maxChars === undefined && (await file.stat()).size > maxBytes) throw new RangeError('File exceeds the configured byte limit');
+    const decoder = new TextDecoder();
+    const chunk = new Uint8Array(16 * 1024);
+    const pieces = [];
+    let total = 0, characters = 0;
+    while (characters < limit) {
+      const { bytesRead } = await file.read(chunk, 0, Math.min(chunk.length, maxBytes - total + 1), null);
+      total += bytesRead;
+      if (total > maxBytes) throw new RangeError('Read exceeds the configured byte limit');
+      const text = decoder.decode(chunk.subarray(0, bytesRead), { stream: bytesRead !== 0 });
+      const points = Array.from(text);
+      const take = Math.min(points.length, limit - characters);
+      pieces.push(points.slice(0, take).join(''));
+      characters += take;
+      if (!bytesRead) break;
+    }
+    return pieces.join('');
   }
   async function writeBytes(path, bytes) {
     if (!(bytes instanceof Uint8Array)) throw new TypeError('writeBytes expects Uint8Array');
     if (bytes.byteLength > maxBytes) throw new RangeError('Write exceeds the configured byte limit');
     const target = await pathFor(path, { missing: true });
-    const file = await fs.open(target, constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | (constants.O_NOFOLLOW ?? 0), 0o600);
-    try { await file.writeFile(bytes); } finally { await file.close(); }
+    await using file = await fs.open(target, constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | (constants.O_NOFOLLOW ?? 0), 0o600);
+    await file.writeFile(bytes);
   }
   async function writeText(path, text) {
     if (typeof text !== 'string') throw new TypeError('writeText expects a string');

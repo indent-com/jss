@@ -18,9 +18,8 @@ try {
   execFileSync(process.execPath, ['--input-type=module', '-e', `
     import { evaluate, createSandbox } from '@indent-com/jss';
     if (await evaluate('6 * 7') !== 42) throw new Error('Package import/evaluation failed');
-    const sandbox = await createSandbox({execution:'inline'});
-    try { if (await sandbox.evaluate('40 + 2') !== 42) throw new Error('Inline failed'); }
-    finally { await sandbox.dispose(); }
+    await using sandbox = await createSandbox({execution:'inline'});
+    if (await sandbox.evaluate('40 + 2') !== 42) throw new Error('Inline failed');
   `], { cwd: fixture, stdio: 'inherit' });
   const tests = readdirSync(join(fixture, 'installed/test')).filter(file => file.endsWith('.test.mjs') && file !== 'publish.test.mjs').map(file => `test/${file}`);
   execFileSync(process.execPath, ['--test', ...tests], { cwd: join(fixture, 'installed'), stdio: 'inherit' });

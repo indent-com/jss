@@ -116,17 +116,19 @@ for (const execution of ['inline', 'worker']) {
 
   check('handles support accessors, methods, properties, identity and independent duplicates', async () => {
     await scoped(async (sandbox) => {
-      const object = await sandbox.evaluateHandle('({ count: 1, get double() { return this.count * 2 }, add(n) { this.count += n; return this.count } })');
-      const duplicate = await object.dup();
+      await using object = await sandbox.evaluateHandle('({ count: 1, get double() { return this.count * 2 }, add(n) { this.count += n; return this.count } })');
+      await using duplicate = await object.dup();
       assert.equal(await object.type(), 'object');
       assert.equal(await object.equals(duplicate), true);
       await object.set('count', 20);
-      const result = await object.invoke('add', [1]);
-      assert.equal(await result.dump(), 21);
-      await result.dispose();
-      const doubled = await object.get('double');
-      assert.equal(await doubled.dump(), 42);
-      await doubled.dispose();
+      {
+        await using result = await object.invoke('add', [1]);
+        assert.equal(await result.dump(), 21);
+      }
+      {
+        await using doubled = await object.get('double');
+        assert.equal(await doubled.dump(), 42);
+      }
       await object.set('extra', true);
       assert.equal(await object.has('extra'), true);
       assert.equal(await object.delete('extra'), true);
@@ -136,55 +138,54 @@ for (const execution of ['inline', 'worker']) {
       await object.dispose();
       await assert.rejects(object.type(), code('ERR_HANDLE'));
       assert.equal(await duplicate.type(), 'object');
-      await duplicate.dispose();
     });
   });
 
   check('handles support constructors, explicit receivers, symbols and cyclic graphs', async () => {
     await scoped(async (sandbox) => {
-      const constructor = await sandbox.evaluateHandle('(class Counter { constructor(n) { this.n = n } plus(n) { return this.n + n } })');
-      const instance = await constructor.construct([40]);
-      const fn = await instance.get('plus');
-      const result = await fn.call(instance, [2]);
+      await using constructor = await sandbox.evaluateHandle('(class Counter { constructor(n) { this.n = n } plus(n) { return this.n + n } })');
+      await using instance = await constructor.construct([40]);
+      await using fn = await instance.get('plus');
+      await using result = await fn.call(instance, [2]);
       assert.equal(await result.dump(), 42);
-      const symbol = await sandbox.evaluateHandle('Symbol("key")');
+      await using symbol = await sandbox.evaluateHandle('Symbol("key")');
       assert.equal(await symbol.type(), 'symbol');
       await instance.set(symbol, 'secret');
-      const secret = await instance.get(symbol);
+      await using secret = await instance.get(symbol);
       assert.equal(await secret.dump(), 'secret');
       await instance.set('self', instance);
-      const self = await instance.get('self');
+      await using self = await instance.get('self');
       assert.equal(await self.equals(instance), true);
       await assert.rejects(instance.dump(), code('ERR_CLONE'));
-      await Promise.all([self, secret, symbol, result, fn, instance, constructor].map(handle => handle.dispose()));
     });
   });
 
   check('property and call handles preserve promises until explicitly awaited', async () => {
     await scoped(async (sandbox) => {
-      const container = await sandbox.evaluateHandle('({ value: Promise.resolve(42), method() { return this.value } })');
-      const promise = await container.get('value');
-      const returned = await container.invoke('method');
+      await using container = await sandbox.evaluateHandle('({ value: Promise.resolve(42), method() { return this.value } })');
+      await using promise = await container.get('value');
+      await using returned = await container.invoke('method');
       assert.equal(await promise.equals(returned), true);
       await assert.rejects(promise.dump(), code('ERR_CLONE'));
-      const resolved = await promise.await();
+      await using resolved = await promise.await();
       assert.equal(await resolved.dump(), 42);
-      await Promise.all([resolved, returned, promise, container].map(handle => handle.dispose()));
     });
   });
 
   check('invocation retains operands before caller disposal', async () => {
     await scoped(async (sandbox) => {
-      const object = await sandbox.evaluateHandle('({ offset: 2, method(value) { return this.offset + value.answer } })');
-      const argument = await sandbox.handle({ answer: 40 });
+      await using object = await sandbox.evaluateHandle('({ offset: 2, method(value) { return this.offset + value.answer } })');
+      await using argument = await sandbox.handle({ answer: 40 });
       const invocation = object.invoke('method', [argument]);
       const cleanup = Promise.all([object.dispose(), argument.dispose()]);
-      const result = await invocation;
-      assert.equal(await result.dump(), 42);
-      await result.dispose(); await cleanup;
+      {
+        await using result = await invocation;
+        assert.equal(await result.dump(), 42);
+      }
+      await cleanup;
 
       await sandbox.evaluate('function add(value) { return value.answer + 2 }');
-      const secondArgument = await sandbox.handle({ answer: 40 });
+      await using secondArgument = await sandbox.handle({ answer: 40 });
       const called = sandbox.call('add', [secondArgument]);
       const released = secondArgument.dispose();
       assert.equal(await called, 42);
@@ -220,13 +221,12 @@ for (const execution of ['inline', 'worker']) {
   check('awaiting a guest promise does not call a replaced Promise.prototype.then', async () => {
     await scoped(async (sandbox) => {
       assert.equal(await sandbox.evaluate('({ then(resolve) { resolve(42) } })'), 42);
-      const container = await sandbox.evaluateHandle('({ promise: Promise.resolve(42) })');
-      const promise = await container.get('promise');
+      await using container = await sandbox.evaluateHandle('({ promise: Promise.resolve(42) })');
+      await using promise = await container.get('promise');
       await sandbox.evaluate('Promise.prototype.then = function () { throw Error("replaced then") }; undefined');
-      const resolved = await promise.await();
+      await using resolved = await promise.await();
       assert.equal(await resolved.dump(), 42);
       assert.equal(await sandbox.evaluate('Promise.resolve(42)'), 42);
-      await Promise.all([resolved, promise, container].map(handle => handle.dispose()));
     });
   });
 
@@ -273,35 +273,33 @@ for (const execution of ['inline', 'worker']) {
   check('handle callbacks receive temporary scopes and may retain duplicates', async () => {
     await scoped(async (sandbox) => {
       let borrowed, retained;
-      const callback = await sandbox.createFunction(async (receiver, args) => {
-        const marker = await receiver.get('marker');
-        try { assert.equal(await marker.dump(), 7); } finally { await marker.dispose(); }
+      await using retainedHandles = new AsyncDisposableStack();
+      await using callback = await sandbox.createFunction(async (receiver, args) => {
+        await using marker = await receiver.get('marker');
+        assert.equal(await marker.dump(), 7);
         borrowed = args[0];
-        retained = await borrowed.dup();
+        retained = retainedHandles.use(await borrowed.dup());
         return borrowed;
       });
       await sandbox.set('hostEcho', callback);
-      const result = await sandbox.evaluateHandle('globalThis.item = { answer: 42 }; await hostEcho.call({ marker: 7 }, item)');
+      await using result = await sandbox.evaluateHandle('globalThis.item = { answer: 42 }; await hostEcho.call({ marker: 7 }, item)');
       assert.equal(await result.equals(retained), true);
       assert.equal(borrowed.disposed, true);
       await assert.rejects(borrowed.dump(), code('ERR_HANDLE'));
       assert.deepEqual(await retained.dump(), { answer: 42 });
-      await Promise.all([callback, result, retained].map(handle => handle.dispose()));
     });
   });
 
   check('pending guest promises allow independent work and disposal settles callers', async () => {
-    const sandbox = await createSandbox({ execution, timeoutMs: 2_000 });
+    await using sandbox = await createSandbox({ execution, timeoutMs: 2_000 });
     const pending = sandbox.evaluate('new Promise(() => {})');
     const rejected = assert.rejects(pending, code('ERR_DISPOSED'));
-    try {
-      assert.equal(await sandbox.evaluate('42'), 42);
-      await sandbox.dispose();
-      await rejected;
-      assert.equal(sandbox.disposed, true);
-      await assert.rejects(sandbox.evaluate('1'), code('ERR_DISPOSED'));
-      await sandbox.dispose();
-    } finally { await sandbox.dispose(); }
+    assert.equal(await sandbox.evaluate('42'), 42);
+    await sandbox.dispose();
+    await rejected;
+    assert.equal(sandbox.disposed, true);
+    await assert.rejects(sandbox.evaluate('1'), code('ERR_DISPOSED'));
+    await sandbox.dispose();
   });
 
   check('aborted requests reject without retiring an otherwise idle sandbox', async () => {
@@ -313,14 +311,37 @@ for (const execution of ['inline', 'worker']) {
   });
 
   check('outstanding operation cap rejects excess work and cleanup still succeeds', async () => {
-    const sandbox = await createSandbox({ execution, maxPendingOperations: 1, timeoutMs: 2_000 });
+    await using sandbox = await createSandbox({ execution, maxPendingOperations: 1, timeoutMs: 2_000 });
     const pending = sandbox.evaluate('new Promise(() => {})');
     const rejected = assert.rejects(pending, code('ERR_DISPOSED'));
-    try {
-      await assert.rejects(sandbox.evaluate('42'), code('ERR_QUEUE_FULL'));
-      await sandbox.dispose();
-      await rejected;
-    } finally { await sandbox.dispose(); }
+    await assert.rejects(sandbox.evaluate('42'), code('ERR_QUEUE_FULL'));
+    await sandbox.dispose();
+    await rejected;
+  });
+
+  check('await using cleans up nested owned scopes on return and throw', async () => {
+    for (const throws of [false, true]) {
+      let sandbox, handle, duplicate;
+      const expected = new Error('scope failure');
+      const run = async () => {
+        await using realm = sandbox = await createSandbox({ execution, timeoutMs: 2_000 });
+        await using value = handle = await realm.handle({ answer: 42 });
+        {
+          await using copy = duplicate = await value.dup();
+          assert.deepEqual(await copy.dump(), { answer: 42 });
+        }
+        assert.equal(duplicate.disposed, true);
+        assert.deepEqual(await value.dump(), { answer: 42 });
+        assert.equal(realm.disposed, false);
+        if (throws) throw expected;
+        return await value.dump();
+      };
+      if (throws) await assert.rejects(run(), error => error === expected);
+      else assert.deepEqual(await run(), { answer: 42 });
+      assert.equal(handle.disposed, true);
+      assert.equal(sandbox.disposed, true);
+      await assert.rejects(handle.dump(), code('ERR_HANDLE'));
+    }
   });
 
   check('withSandbox cleans up after caller errors', async () => {
@@ -332,15 +353,12 @@ for (const execution of ['inline', 'worker']) {
 }
 
 test('cross-sandbox references are rejected before entering the engine', async () => {
-  await withSandbox({ execution: 'inline' }, async (first) => {
-    await withSandbox({ execution: 'worker' }, async (second) => {
-      const value = await first.handle({ answer: 42 });
-      const other = await second.handle({});
-      await assert.rejects(second.set('foreign', value), code('ERR_HANDLE'));
-      await assert.rejects(other.equals(value), code('ERR_HANDLE'));
-      await value.dispose(); await other.dispose();
-    });
-  });
+  await using first = await createSandbox({ execution: 'inline' });
+  await using second = await createSandbox({ execution: 'worker' });
+  await using value = await first.handle({ answer: 42 });
+  await using other = await second.handle({});
+  await assert.rejects(second.set('foreign', value), code('ERR_HANDLE'));
+  await assert.rejects(other.equals(value), code('ERR_HANDLE'));
 });
 
 test('invalid options and inputs fail through promises', async () => {
@@ -350,9 +368,8 @@ test('invalid options and inputs fail through promises', async () => {
     assert.ok(promise instanceof Promise);
     await assert.rejects(promise, code('ERR_OPTIONS'));
   }
-  await withSandbox({ execution: 'inline' }, async (sandbox) => {
-    let promise;
-    assert.doesNotThrow(() => { promise = sandbox.evaluate(42); });
-    await assert.rejects(promise, code('ERR_SOURCE'));
-  });
+  await using sandbox = await createSandbox({ execution: 'inline' });
+  let promise;
+  assert.doesNotThrow(() => { promise = sandbox.evaluate(42); });
+  await assert.rejects(promise, code('ERR_SOURCE'));
 });

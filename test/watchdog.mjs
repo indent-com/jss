@@ -4,8 +4,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { createSandbox } from '../dist/node.js';
 
 const [scenario, execution = 'worker'] = process.argv.slice(2);
-const sandbox = await createSandbox({ execution, timeoutMs: 500, memoryLimitBytes: 8 * 1024 * 1024, stackLimitBytes: 128 * 1024 });
-try {
+{
+  await using sandbox = await createSandbox({ execution, timeoutMs: 500, memoryLimitBytes: 8 * 1024 * 1024, stackLimitBytes: 128 * 1024 });
   if (scenario === 'loop' || scenario === 'jobs' || scenario === 'proxy' || scenario === 'pending') {
     const source = {
       loop: 'while (true) {}',
@@ -27,19 +27,17 @@ try {
   } else if (scenario === 'jobs-abort' || scenario === 'calls-yield') {
     const controller = new AbortController();
     const started = performance.now();
-    const timer = setTimeout(() => controller.abort(), 30);
-    try {
-      if (scenario === 'jobs-abort') {
-        await assert.rejects(sandbox.evaluate('await new Promise(() => { function again() { Promise.resolve().then(again) } again() })', {
-          signal: controller.signal, timeoutMs: 5_000,
-        }), error => error.code === 'ERR_ABORTED');
-        assert.equal(sandbox.disposed, true);
-      } else {
-        await sandbox.evaluate('globalThis.identity = value => value; undefined');
-        while (!controller.signal.aborted) assert.equal(await sandbox.call('identity', [42]), 42);
-      }
-      assert.ok(performance.now() - started < 1_000, 'Microtask traffic starved a host timer');
-    } finally { clearTimeout(timer); }
+    using timer = setTimeout(() => controller.abort(), 30);
+    if (scenario === 'jobs-abort') {
+      await assert.rejects(sandbox.evaluate('await new Promise(() => { function again() { Promise.resolve().then(again) } again() })', {
+        signal: controller.signal, timeoutMs: 5_000,
+      }), error => error.code === 'ERR_ABORTED');
+      assert.equal(sandbox.disposed, true);
+    } else {
+      await sandbox.evaluate('globalThis.identity = value => value; undefined');
+      while (!controller.signal.aborted) assert.equal(await sandbox.call('identity', [42]), 42);
+    }
+    assert.ok(performance.now() - started < 1_000, 'Microtask traffic starved a host timer');
   } else if (scenario === 'abort') {
     const controller = new AbortController();
     const pending = sandbox.evaluate('while (true) {}', { signal: controller.signal, timeoutMs: 5_000 });
@@ -72,5 +70,5 @@ try {
     await rejected;
     await delay(20);
   } else throw new Error(`Unknown watchdog scenario: ${scenario}`);
-  console.log(JSON.stringify({ scenario, execution, ok: true }));
-} finally { await sandbox.dispose(); }
+}
+console.log(JSON.stringify({ scenario, execution, ok: true }));

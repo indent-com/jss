@@ -51,16 +51,17 @@ export async function createDemoServer({ port = 0 } = {}) {
       server.closeAllConnections();
       await new Promise(resolve => server.close(resolve));
     },
+    async [Symbol.asyncDispose]() { await this.dispose(); },
   };
 }
 
 export async function runDemo() {
   const root = await mkdtemp(join(tmpdir(), 'jss-capabilities-'));
-  const server = await createDemoServer();
   try {
+    await using server = await createDemoServer();
     await cp(new URL('./capabilities/fixtures/', import.meta.url), root, { recursive: true });
     return await runScript({ root, entry: 'main.ts', allowedOrigins: [server.origin], args: [server.origin] });
-  } finally { await server.dispose(); await rm(root, { recursive: true, force: true }); }
+  } finally { await rm(root, { recursive: true, force: true }); }
 }
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   if (process.argv[2] === '--serve') {

@@ -74,8 +74,7 @@ test('computed dynamic TypeScript is checked before execution and HTTP requires 
 
 test('Fetch body lifecycle, streaming uploads, cancellation, redirects, local URLs and WebSocket validation', { timeout: 90_000 }, async t => {
   const root = await fixture(t);
-  const server = await createDemoServer();
-  t.after(() => server.dispose());
+  await using server = await createDemoServer();
   await writeFile(join(root, 'main.ts'), `
     const origin = args[0];
     const headers = new Headers([['X-Test', ' one '], ['x-test', 'two'], ['set-cookie', 'a=1'], ['set-cookie', 'b=2']]);
@@ -153,10 +152,8 @@ test('Fetch body lifecycle, streaming uploads, cancellation, redirects, local UR
 test('REPL retains checked declarations across static import, dynamic HTTP import and an assertion', { timeout: 90_000 }, async t => {
   const root = await fixture(t);
   await writeFile(join(root, 'math.ts'), 'export function fibonacci(n: number): bigint { let a=0n,b=1n; for(let i=0;i<n;i++) [a,b]=[b,a+b]; return a; }');
-  const server = await createDemoServer();
-  t.after(() => server.dispose());
-  const runner = await createRunner({ root, allowedOrigins: [server.origin], console: quiet });
-  t.after(() => runner.dispose());
+  await using server = await createDemoServer();
+  await using runner = await createRunner({ root, allowedOrigins: [server.origin], console: quiet });
   assert.equal(await runner.evaluate("import './math.ts'"), undefined);
   assert.equal(await runner.evaluate("import { fibonacci } from './math.ts'"), undefined);
   assert.equal(await runner.evaluate(`const { greeting } = await import('${server.origin}/remote.ts')`), undefined);
@@ -171,8 +168,7 @@ test('REPL retains checked declarations across static import, dynamic HTTP impor
 
 test('WebSocket chunks preserve UTF-8 and binary message boundaries above bridge chunk size', { timeout: 90_000 }, async t => {
   const root = await fixture(t);
-  const server = await createDemoServer();
-  t.after(() => server.dispose());
+  await using server = await createDemoServer();
   await writeFile(join(root, 'main.ts'), `
     const socket = new WebSocket(args[0].replace(/^http/,'ws')+'/socket',['example']);
     socket.binaryType = 'arraybuffer';

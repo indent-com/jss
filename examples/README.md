@@ -1,6 +1,7 @@
 # Examples
 
-The examples run from a checkout with direnv enabled:
+The examples use native `await using` and run on Node 24+ (the pinned direnv
+toolchain). Sandboxes and owned handles are released at scope exit:
 
 ```sh
 direnv allow

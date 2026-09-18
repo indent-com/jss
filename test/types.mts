@@ -8,19 +8,18 @@ const settings: SandboxOptions = { execution: 'worker', memoryLimitBytes: 8 * 10
 const execution: ExecutionOptions = { filename: 'typed.js', signal: new AbortController().signal };
 const answer: number = await evaluate<number>('42', { ...settings, ...execution });
 const browserAnswer: Promise<number> = browserEvaluate<number>('42', { execution: 'inline' });
-const sandbox = await createSandbox(settings);
-const handle: Handle = await sandbox.handle({ answer });
+await using sandbox = await createSandbox(settings);
+await using handle: Handle = await sandbox.handle({ answer });
 const copied: { answer: number } = await handle.dump<{ answer: number }>();
 const callback: HandleFunction = async (receiver, args) => {
   const category: string = await receiver.type();
   return category === 'object' ? args[0] : null;
 };
-const functionHandle: Handle = await sandbox.createFunction(callback);
+await using functionHandle: Handle = await sandbox.createFunction(callback);
 const moduleOptions: ModuleOptions = { timeoutMs: 1_000, signal: execution.signal };
 await sandbox.defineModule('/typed.js', 'export const answer = 42;', moduleOptions);
-const namespace: Handle = await sandbox.evaluateModuleHandle('/typed.js', moduleOptions);
+await using namespace: Handle = await sandbox.evaluateModuleHandle('/typed.js', moduleOptions);
 const moduleResult: { answer: number } = await sandbox.evaluateModule<{ answer: number }>('/typed.js', moduleOptions);
-await namespace.dispose();
 const scoped: string = await withSandbox({}, async realm => realm.evaluate<string>('"hello"'));
 const error: SandboxError = new SandboxError('message');
 const code: string = error.code;
@@ -40,6 +39,3 @@ const synchronous: number = handle.dump<number>();
 // @ts-expect-error unsupported execution modes are rejected statically
 const invalid: SandboxOptions = { execution: 'thread' };
 void [synchronous, invalid];
-await functionHandle.dispose();
-await handle.dispose();
-await sandbox.dispose();

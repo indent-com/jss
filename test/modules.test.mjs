@@ -34,19 +34,17 @@ for (const execution of ['inline', 'worker']) {
         export let count = 0;
         export function increment() { return ++count; }
       `);
-      const first = await sandbox.evaluateModuleHandle('counter');
-      const second = await sandbox.evaluateModuleHandle('jss:/counter');
-      try {
-        assert.equal(await first.equals(second), true);
-        assert.deepEqual(await first.keys(), ['count', 'increment']);
-        const result = await first.invoke('increment');
-        try { assert.equal(await result.dump(), 1); } finally { await result.dispose(); }
-        const count = await second.get('count');
-        try { assert.equal(await count.dump(), 1); } finally { await count.dispose(); }
-        await assert.rejects(first.dump(), code('ERR_CLONE'));
-        await assert.rejects(sandbox.evaluateModule('counter'), code('ERR_CLONE'));
-        assert.equal(await sandbox.evaluate('executions'), 1);
-      } finally { await first.dispose(); await second.dispose(); }
+      await using first = await sandbox.evaluateModuleHandle('counter');
+      await using second = await sandbox.evaluateModuleHandle('jss:/counter');
+      assert.equal(await first.equals(second), true);
+      assert.deepEqual(await first.keys(), ['count', 'increment']);
+      await using result = await first.invoke('increment');
+      assert.equal(await result.dump(), 1);
+      await using count = await second.get('count');
+      assert.equal(await count.dump(), 1);
+      await assert.rejects(first.dump(), code('ERR_CLONE'));
+      await assert.rejects(sandbox.evaluateModule('counter'), code('ERR_CLONE'));
+      assert.equal(await sandbox.evaluate('executions'), 1);
     });
   });
 
@@ -169,8 +167,8 @@ for (const execution of ['inline', 'worker']) {
       await sandbox.defineModule('/two.js', source);
       await assert.rejects(sandbox.defineModule('/three.js', ' '), code('ERR_RESOURCE_LIMIT'));
     }, { timeoutMs: 10_000 });
-    const sandbox = await createSandbox({ execution, memoryLimitBytes: 2 * 1024 * 1024, timeoutMs: 3_000 });
-    try {
+    {
+      await using sandbox = await createSandbox({ execution, memoryLimitBytes: 2 * 1024 * 1024, timeoutMs: 3_000 });
       const source = ' '.repeat(128 * 1024);
       let failed = false;
       for (let i = 0; i < 20; i++) {
@@ -178,7 +176,7 @@ for (const execution of ['inline', 'worker']) {
         catch (error) { assert.ok(error instanceof Error); failed = true; break; }
       }
       assert.equal(failed, true, 'registered module source must count toward the guest heap limit');
-    } finally { await sandbox.dispose(); }
+    }
     await scoped(async sandbox => {
       await assert.rejects(sandbox.evaluate(`
         globalThis.retainedBuffers = [];
@@ -197,12 +195,10 @@ for (const execution of ['inline', 'worker']) {
       import assert from 'node:assert/strict';
       import { createSandbox } from ${JSON.stringify(entry)};
       for (const source of ['while (true) {}', 'await new Promise(() => {});']) {
-        const sandbox = await createSandbox({ execution: ${JSON.stringify(execution)}, timeoutMs: 2_000 });
-        try {
-          await sandbox.defineModule('/deadline.js', source);
-          await assert.rejects(sandbox.evaluateModule('/deadline.js', { timeoutMs: 100 }), error => error.code === 'ERR_TIMEOUT');
-          assert.equal(sandbox.disposed, true);
-        } finally { await sandbox.dispose(); }
+        await using sandbox = await createSandbox({ execution: ${JSON.stringify(execution)}, timeoutMs: 2_000 });
+        await sandbox.defineModule('/deadline.js', source);
+        await assert.rejects(sandbox.evaluateModule('/deadline.js', { timeoutMs: 100 }), error => error.code === 'ERR_TIMEOUT');
+        assert.equal(sandbox.disposed, true);
       }
       console.log('ok');
     `;
