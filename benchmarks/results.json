@@ -1,0 +1,2968 @@
+{
+  "environment": {
+    "timestamp": "2026-09-18T05:12:00.381Z",
+    "platform": "linux",
+    "arch": "x64",
+    "kernel": "6.18.48",
+    "cpu": "13th Gen Intel(R) Core(TM) i5-13500",
+    "logicalCPUs": 20,
+    "memoryGiB": 62.581092834472656,
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51",
+    "loadStart": [
+      2.33,
+      2.05,
+      1.87
+    ],
+    "cpuAffinity": "2,4",
+    "governor": "powersave",
+    "wasmSHA256": "4ffee4f798995422fdbda0abd73e203b783286533755e477cb661f2e83421908",
+    "wasmBuild": {
+      "engine": "quickjs-ng",
+      "version": "0.16.2",
+      "commit": "1ab8676f4b6d6d669baeb5f21790fb9734636a20",
+      "emscripten": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 5.0.6-git"
+    },
+    "workloadsSHA256": "67476fd665110f15ff699755eb5eeef74ef16c0bda50dfc1fe9866f68463c92f",
+    "bindingsSHA256": "1221c4372915b931f8ec0b81401a3c147b915e3a184c019d7263b115876760f7",
+    "nativeBinarySHA256": "3479ab112cb1b66d4439c7154f9edd381b88067dc174361e79c63e2290ed7787",
+    "native": {
+      "ready": true,
+      "compiler": "15.2.0",
+      "engine": "0.16.2"
+    },
+    "loadEnd": [
+      1.68,
+      1.92,
+      1.83
+    ]
+  },
+  "configuration": {
+    "targetMs": 50,
+    "warmups": 3,
+    "rounds": 9,
+    "maxCount": 10000000
+  },
+  "backends": [
+    {
+      "id": "node",
+      "name": "Node"
+    },
+    {
+      "id": "node-worker",
+      "name": "Node worker"
+    },
+    {
+      "id": "quickjs",
+      "name": "Native QuickJS"
+    },
+    {
+      "id": "jss-inline",
+      "name": "JSS inline"
+    },
+    {
+      "id": "jss-worker",
+      "name": "JSS worker"
+    }
+  ],
+  "results": [
+    {
+      "id": "compute",
+      "name": "Integer mixing",
+      "operation": "10,000 xorshift32 steps",
+      "entries": [
+        {
+          "driver": "node",
+          "count": 3830,
+          "samples": [
+            {
+              "milliseconds": 51.2958779999999,
+              "checksum": 1237313894,
+              "seed": 1193216,
+              "microsecondsPerOperation": 13.393179634464726
+            },
+            {
+              "milliseconds": 50.89415699999972,
+              "checksum": 2241680237,
+              "seed": 1193313,
+              "microsecondsPerOperation": 13.288291644908544
+            },
+            {
+              "milliseconds": 49.81244199999992,
+              "checksum": 3468413988,
+              "seed": 1193410,
+              "microsecondsPerOperation": 13.00585953002609
+            },
+            {
+              "milliseconds": 51.23738000000003,
+              "checksum": 3811149065,
+              "seed": 1193507,
+              "microsecondsPerOperation": 13.377906005221941
+            },
+            {
+              "milliseconds": 49.59631000000036,
+              "checksum": 2780825302,
+              "seed": 1193604,
+              "microsecondsPerOperation": 12.949428198433514
+            },
+            {
+              "milliseconds": 49.90923799999973,
+              "checksum": 3181827653,
+              "seed": 1193701,
+              "microsecondsPerOperation": 13.031132637075649
+            },
+            {
+              "milliseconds": 49.23147700000027,
+              "checksum": 3720586180,
+              "seed": 1193798,
+              "microsecondsPerOperation": 12.854171540470045
+            },
+            {
+              "milliseconds": 49.37459899999976,
+              "checksum": 1205119825,
+              "seed": 1193895,
+              "microsecondsPerOperation": 12.891540208877222
+            },
+            {
+              "milliseconds": 49.27011799999946,
+              "checksum": 3602923900,
+              "seed": 1193992,
+              "microsecondsPerOperation": 12.864260574412391
+            }
+          ],
+          "median": 13.00585953002609,
+          "min": 12.854171540470045,
+          "max": 13.393179634464726
+        },
+        {
+          "driver": "node-worker",
+          "count": 3510,
+          "samples": [
+            {
+              "milliseconds": 47.21693800000003,
+              "checksum": 4190103430,
+              "seed": 1193216,
+              "microsecondsPerOperation": 13.452119088319096
+            },
+            {
+              "milliseconds": 47.30691400000023,
+              "checksum": 2450103745,
+              "seed": 1193313,
+              "microsecondsPerOperation": 13.477753276353344
+            },
+            {
+              "milliseconds": 45.91397999999981,
+              "checksum": 515645112,
+              "seed": 1193410,
+              "microsecondsPerOperation": 13.080905982905929
+            },
+            {
+              "milliseconds": 46.28925600000002,
+              "checksum": 1076697779,
+              "seed": 1193507,
+              "microsecondsPerOperation": 13.187822222222229
+            },
+            {
+              "milliseconds": 45.82609700000012,
+              "checksum": 4123003742,
+              "seed": 1193604,
+              "microsecondsPerOperation": 13.055868091168124
+            },
+            {
+              "milliseconds": 46.40095900000006,
+              "checksum": 853211905,
+              "seed": 1193701,
+              "microsecondsPerOperation": 13.219646438746455
+            },
+            {
+              "milliseconds": 46.07933400000002,
+              "checksum": 767775024,
+              "seed": 1193798,
+              "microsecondsPerOperation": 13.12801538461539
+            },
+            {
+              "milliseconds": 45.44512399999985,
+              "checksum": 650598859,
+              "seed": 1193895,
+              "microsecondsPerOperation": 12.947328774928732
+            },
+            {
+              "milliseconds": 46.645307999999204,
+              "checksum": 650133404,
+              "seed": 1193992,
+              "microsecondsPerOperation": 13.28926153846131
+            }
+          ],
+          "median": 13.187822222222229,
+          "min": 12.947328774928732,
+          "max": 13.477753276353344
+        },
+        {
+          "driver": "quickjs",
+          "count": 53,
+          "samples": [
+            {
+              "milliseconds": 52.312906027,
+              "checksum": 2335746841,
+              "seed": 1193216,
+              "microsecondsPerOperation": 987.0359627735849
+            },
+            {
+              "milliseconds": 52.226398945,
+              "checksum": 2516558953,
+              "seed": 1193313,
+              "microsecondsPerOperation": 985.4037536792453
+            },
+            {
+              "milliseconds": 52.029952049,
+              "checksum": 750577912,
+              "seed": 1193410,
+              "microsecondsPerOperation": 981.6972084716981
+            },
+            {
+              "milliseconds": 50.366287947,
+              "checksum": 3001302700,
+              "seed": 1193507,
+              "microsecondsPerOperation": 950.3073197547169
+            },
+            {
+              "milliseconds": 51.716381788,
+              "checksum": 631652147,
+              "seed": 1193604,
+              "microsecondsPerOperation": 975.7807884528302
+            },
+            {
+              "milliseconds": 51.196825027,
+              "checksum": 2565927939,
+              "seed": 1193701,
+              "microsecondsPerOperation": 965.9778306981133
+            },
+            {
+              "milliseconds": 51.26158905,
+              "checksum": 2527480226,
+              "seed": 1193798,
+              "microsecondsPerOperation": 967.1997933962264
+            },
+            {
+              "milliseconds": 51.608347178,
+              "checksum": 4155962774,
+              "seed": 1193895,
+              "microsecondsPerOperation": 973.7423995849057
+            },
+            {
+              "milliseconds": 50.488332987,
+              "checksum": 597677750,
+              "seed": 1193992,
+              "microsecondsPerOperation": 952.6100563584906
+            }
+          ],
+          "median": 973.7423995849057,
+          "min": 950.3073197547169,
+          "max": 987.0359627735849
+        },
+        {
+          "driver": "jss-inline",
+          "count": 70,
+          "samples": [
+            {
+              "milliseconds": 48.236996999999974,
+              "checksum": 2638240606,
+              "seed": 1193216,
+              "microsecondsPerOperation": 689.0999571428567
+            },
+            {
+              "milliseconds": 47.85541899999998,
+              "checksum": 1454159327,
+              "seed": 1193313,
+              "microsecondsPerOperation": 683.6488428571425
+            },
+            {
+              "milliseconds": 47.41870599999993,
+              "checksum": 2059375222,
+              "seed": 1193410,
+              "microsecondsPerOperation": 677.4100857142847
+            },
+            {
+              "milliseconds": 46.56807800000024,
+              "checksum": 3223102902,
+              "seed": 1193507,
+              "microsecondsPerOperation": 665.2582571428605
+            },
+            {
+              "milliseconds": 48.01936400000022,
+              "checksum": 1379906562,
+              "seed": 1193604,
+              "microsecondsPerOperation": 685.9909142857174
+            },
+            {
+              "milliseconds": 47.54437999999982,
+              "checksum": 2743461227,
+              "seed": 1193701,
+              "microsecondsPerOperation": 679.205428571426
+            },
+            {
+              "milliseconds": 48.29661099999976,
+              "checksum": 2327829890,
+              "seed": 1193798,
+              "microsecondsPerOperation": 689.9515857142823
+            },
+            {
+              "milliseconds": 48.079383000000234,
+              "checksum": 3558998886,
+              "seed": 1193895,
+              "microsecondsPerOperation": 686.8483285714319
+            },
+            {
+              "milliseconds": 47.89214300000003,
+              "checksum": 2185208692,
+              "seed": 1193992,
+              "microsecondsPerOperation": 684.1734714285719
+            }
+          ],
+          "median": 684.1734714285719,
+          "min": 665.2582571428605,
+          "max": 689.9515857142823
+        },
+        {
+          "driver": "jss-worker",
+          "count": 67,
+          "samples": [
+            {
+              "milliseconds": 46.69891800000005,
+              "checksum": 3975754240,
+              "seed": 1193216,
+              "microsecondsPerOperation": 696.9987761194037
+            },
+            {
+              "milliseconds": 44.851076000000376,
+              "checksum": 1372468987,
+              "seed": 1193313,
+              "microsecondsPerOperation": 669.419044776125
+            },
+            {
+              "milliseconds": 47.00790999999981,
+              "checksum": 3180606812,
+              "seed": 1193410,
+              "microsecondsPerOperation": 701.6105970149226
+            },
+            {
+              "milliseconds": 46.7106289999997,
+              "checksum": 953639743,
+              "seed": 1193507,
+              "microsecondsPerOperation": 697.1735671641745
+            },
+            {
+              "milliseconds": 45.3401230000004,
+              "checksum": 475351226,
+              "seed": 1193604,
+              "microsecondsPerOperation": 676.7182537313493
+            },
+            {
+              "milliseconds": 46.13497400000006,
+              "checksum": 3930429869,
+              "seed": 1193701,
+              "microsecondsPerOperation": 688.5817014925382
+            },
+            {
+              "milliseconds": 44.835227999999915,
+              "checksum": 1653569106,
+              "seed": 1193798,
+              "microsecondsPerOperation": 669.1825074626853
+            },
+            {
+              "milliseconds": 44.564918000000034,
+              "checksum": 1907081445,
+              "seed": 1193895,
+              "microsecondsPerOperation": 665.1480298507468
+            },
+            {
+              "milliseconds": 44.78476000000046,
+              "checksum": 3227405721,
+              "seed": 1193992,
+              "microsecondsPerOperation": 668.4292537313502
+            }
+          ],
+          "median": 676.7182537313493,
+          "min": 665.1480298507468,
+          "max": 701.6105970149226
+        }
+      ]
+    },
+    {
+      "id": "json",
+      "name": "JSON round trip",
+      "operation": "create, stringify, parse and consume 32 records",
+      "entries": [
+        {
+          "driver": "node",
+          "count": 6447,
+          "samples": [
+            {
+              "milliseconds": 48.54004299999997,
+              "checksum": 1359765642,
+              "seed": 1193216,
+              "microsecondsPerOperation": 7.529089964324487
+            },
+            {
+              "milliseconds": 49.10331699999915,
+              "checksum": 1379777130,
+              "seed": 1193313,
+              "microsecondsPerOperation": 7.616459903831108
+            },
+            {
+              "milliseconds": 48.057152999999744,
+              "checksum": 1399788618,
+              "seed": 1193410,
+              "microsecondsPerOperation": 7.45418845974868
+            },
+            {
+              "milliseconds": 47.46869300000071,
+              "checksum": 1419800106,
+              "seed": 1193507,
+              "microsecondsPerOperation": 7.36291189700647
+            },
+            {
+              "milliseconds": 49.3716629999999,
+              "checksum": 1439811594,
+              "seed": 1193604,
+              "microsecondsPerOperation": 7.658083294555592
+            },
+            {
+              "milliseconds": 48.14461599999959,
+              "checksum": 1459823082,
+              "seed": 1193701,
+              "microsecondsPerOperation": 7.467754924771147
+            },
+            {
+              "milliseconds": 48.45429399999921,
+              "checksum": 1479834570,
+              "seed": 1193798,
+              "microsecondsPerOperation": 7.515789359391842
+            },
+            {
+              "milliseconds": 49.38188599999921,
+              "checksum": 1499846058,
+              "seed": 1193895,
+              "microsecondsPerOperation": 7.659668993330109
+            },
+            {
+              "milliseconds": 49.39909299999999,
+              "checksum": 1519857546,
+              "seed": 1193992,
+              "microsecondsPerOperation": 7.662337986660461
+            }
+          ],
+          "median": 7.529089964324487,
+          "min": 7.36291189700647,
+          "max": 7.662337986660461
+        },
+        {
+          "driver": "node-worker",
+          "count": 6145,
+          "samples": [
+            {
+              "milliseconds": 47.85139699999945,
+              "checksum": 2713072310,
+              "seed": 1193216,
+              "microsecondsPerOperation": 7.7870458909681775
+            },
+            {
+              "milliseconds": 48.07781100000011,
+              "checksum": 2732146390,
+              "seed": 1193313,
+              "microsecondsPerOperation": 7.823891131000832
+            },
+            {
+              "milliseconds": 48.30339499999991,
+              "checksum": 2751220470,
+              "seed": 1193410,
+              "microsecondsPerOperation": 7.860601301871426
+            },
+            {
+              "milliseconds": 48.93791200000123,
+              "checksum": 2770294550,
+              "seed": 1193507,
+              "microsecondsPerOperation": 7.963858746948939
+            },
+            {
+              "milliseconds": 48.54749200000151,
+              "checksum": 2789368630,
+              "seed": 1193604,
+              "microsecondsPerOperation": 7.900324165988855
+            },
+            {
+              "milliseconds": 47.29927099999986,
+              "checksum": 2808442710,
+              "seed": 1193701,
+              "microsecondsPerOperation": 7.697196257119587
+            },
+            {
+              "milliseconds": 48.085535000000164,
+              "checksum": 2827516790,
+              "seed": 1193798,
+              "microsecondsPerOperation": 7.825148087876348
+            },
+            {
+              "milliseconds": 48.8489069999996,
+              "checksum": 2846590870,
+              "seed": 1193895,
+              "microsecondsPerOperation": 7.949374613506851
+            },
+            {
+              "milliseconds": 48.6503560000001,
+              "checksum": 2865664950,
+              "seed": 1193992,
+              "microsecondsPerOperation": 7.917063628966656
+            }
+          ],
+          "median": 7.860601301871426,
+          "min": 7.697196257119587,
+          "max": 7.963858746948939
+        },
+        {
+          "driver": "quickjs",
+          "count": 1131,
+          "samples": [
+            {
+              "milliseconds": 49.583636045,
+              "checksum": 236542706,
+              "seed": 1193216,
+              "microsecondsPerOperation": 43.84052700707338
+            },
+            {
+              "milliseconds": 49.514717102,
+              "checksum": 240053330,
+              "seed": 1193313,
+              "microsecondsPerOperation": 43.77959071794872
+            },
+            {
+              "milliseconds": 49.967337847,
+              "checksum": 243563954,
+              "seed": 1193410,
+              "microsecondsPerOperation": 44.17978589478338
+            },
+            {
+              "milliseconds": 48.002508879,
+              "checksum": 247074578,
+              "seed": 1193507,
+              "microsecondsPerOperation": 42.44253658620689
+            },
+            {
+              "milliseconds": 48.279576063,
+              "checksum": 250585202,
+              "seed": 1193604,
+              "microsecondsPerOperation": 42.68751199204244
+            },
+            {
+              "milliseconds": 48.683959961,
+              "checksum": 254095826,
+              "seed": 1193701,
+              "microsecondsPerOperation": 43.04505743678161
+            },
+            {
+              "milliseconds": 50.145136833,
+              "checksum": 257606450,
+              "seed": 1193798,
+              "microsecondsPerOperation": 44.336991010610085
+            },
+            {
+              "milliseconds": 48.26038909,
+              "checksum": 261117074,
+              "seed": 1193895,
+              "microsecondsPerOperation": 42.67054738284703
+            },
+            {
+              "milliseconds": 50.07246685,
+              "checksum": 264627698,
+              "seed": 1193992,
+              "microsecondsPerOperation": 44.27273815207781
+            }
+          ],
+          "median": 43.77959071794872,
+          "min": 42.44253658620689,
+          "max": 44.336991010610085
+        },
+        {
+          "driver": "jss-inline",
+          "count": 557,
+          "samples": [
+            {
+              "milliseconds": 44.83011400000032,
+              "checksum": 4088671678,
+              "seed": 1193216,
+              "microsecondsPerOperation": 80.48494434470435
+            },
+            {
+              "milliseconds": 45.40109399999983,
+              "checksum": 4090400606,
+              "seed": 1193313,
+              "microsecondsPerOperation": 81.51004308797097
+            },
+            {
+              "milliseconds": 45.3487669999995,
+              "checksum": 4092129534,
+              "seed": 1193410,
+              "microsecondsPerOperation": 81.4160987432666
+            },
+            {
+              "milliseconds": 43.64254699999947,
+              "checksum": 4093858462,
+              "seed": 1193507,
+              "microsecondsPerOperation": 78.35286714542094
+            },
+            {
+              "milliseconds": 44.55079500000102,
+              "checksum": 4095587390,
+              "seed": 1193604,
+              "microsecondsPerOperation": 79.98347396768585
+            },
+            {
+              "milliseconds": 44.02220599999964,
+              "checksum": 4097316318,
+              "seed": 1193701,
+              "microsecondsPerOperation": 79.03448114901192
+            },
+            {
+              "milliseconds": 45.46532300000035,
+              "checksum": 4099045246,
+              "seed": 1193798,
+              "microsecondsPerOperation": 81.62535547576366
+            },
+            {
+              "milliseconds": 45.43367399999988,
+              "checksum": 4100774174,
+              "seed": 1193895,
+              "microsecondsPerOperation": 81.56853500897645
+            },
+            {
+              "milliseconds": 45.44596999999885,
+              "checksum": 4102503102,
+              "seed": 1193992,
+              "microsecondsPerOperation": 81.59061041292433
+            }
+          ],
+          "median": 81.4160987432666,
+          "min": 78.35286714542094,
+          "max": 81.62535547576366
+        },
+        {
+          "driver": "jss-worker",
+          "count": 598,
+          "samples": [
+            {
+              "milliseconds": 49.16825700000027,
+              "checksum": 1359252996,
+              "seed": 1193216,
+              "microsecondsPerOperation": 82.22116555183992
+            },
+            {
+              "milliseconds": 48.747583000000304,
+              "checksum": 1361109188,
+              "seed": 1193313,
+              "microsecondsPerOperation": 81.51769732441522
+            },
+            {
+              "milliseconds": 49.08065700000043,
+              "checksum": 1362965380,
+              "seed": 1193410,
+              "microsecondsPerOperation": 82.0746772575258
+            },
+            {
+              "milliseconds": 47.98775800000021,
+              "checksum": 1364821572,
+              "seed": 1193507,
+              "microsecondsPerOperation": 80.2470869565221
+            },
+            {
+              "milliseconds": 49.074140000000625,
+              "checksum": 1366677764,
+              "seed": 1193604,
+              "microsecondsPerOperation": 82.06377926421509
+            },
+            {
+              "milliseconds": 48.66906399999971,
+              "checksum": 1368533956,
+              "seed": 1193701,
+              "microsecondsPerOperation": 81.38639464882894
+            },
+            {
+              "milliseconds": 48.27823499999977,
+              "checksum": 1370390148,
+              "seed": 1193798,
+              "microsecondsPerOperation": 80.73283444816015
+            },
+            {
+              "milliseconds": 49.04437300000063,
+              "checksum": 1372246340,
+              "seed": 1193895,
+              "microsecondsPerOperation": 82.01400167224186
+            },
+            {
+              "milliseconds": 49.056970999999976,
+              "checksum": 1374102532,
+              "seed": 1193992,
+              "microsecondsPerOperation": 82.03506856187288
+            }
+          ],
+          "median": 82.01400167224186,
+          "min": 80.2470869565221,
+          "max": 82.22116555183992
+        }
+      ]
+    },
+    {
+      "id": "promise",
+      "name": "Guest promise",
+      "operation": "one await Promise.resolve(number)",
+      "entries": [
+        {
+          "driver": "node",
+          "count": 913940,
+          "samples": [
+            {
+              "milliseconds": 39.5162509999991,
+              "checksum": 3915271102,
+              "seed": 1193216,
+              "microsecondsPerOperation": 0.0432372486158819
+            },
+            {
+              "milliseconds": 35.47914300000048,
+              "checksum": 4003923282,
+              "seed": 1193313,
+              "microsecondsPerOperation": 0.038819991465523424
+            },
+            {
+              "milliseconds": 32.94665499999974,
+              "checksum": 4092575462,
+              "seed": 1193410,
+              "microsecondsPerOperation": 0.03604903494758927
+            },
+            {
+              "milliseconds": 37.47795899999983,
+              "checksum": 4181227642,
+              "seed": 1193507,
+              "microsecondsPerOperation": 0.04100702343698692
+            },
+            {
+              "milliseconds": 38.52586700000029,
+              "checksum": 4269879822,
+              "seed": 1193604,
+              "microsecondsPerOperation": 0.04215360636365657
+            },
+            {
+              "milliseconds": 39.55905899999925,
+              "checksum": 63564706,
+              "seed": 1193701,
+              "microsecondsPerOperation": 0.04328408757686418
+            },
+            {
+              "milliseconds": 36.517565000000104,
+              "checksum": 152216886,
+              "seed": 1193798,
+              "microsecondsPerOperation": 0.03995619515504312
+            },
+            {
+              "milliseconds": 38.8901220000007,
+              "checksum": 240869066,
+              "seed": 1193895,
+              "microsecondsPerOperation": 0.04255216097336882
+            },
+            {
+              "milliseconds": 28.685762000000977,
+              "checksum": 329521246,
+              "seed": 1193992,
+              "microsecondsPerOperation": 0.03138692036676475
+            }
+          ],
+          "median": 0.04100702343698692,
+          "min": 0.03138692036676475,
+          "max": 0.04328408757686418
+        },
+        {
+          "driver": "node-worker",
+          "count": 900229,
+          "samples": [
+            {
+              "milliseconds": 42.62388199999987,
+              "checksum": 439775946,
+              "seed": 1193216,
+              "microsecondsPerOperation": 0.04734782149875184
+            },
+            {
+              "milliseconds": 42.94876100000147,
+              "checksum": 527098159,
+              "seed": 1193313,
+              "microsecondsPerOperation": 0.047708706340277275
+            },
+            {
+              "milliseconds": 41.95822500000031,
+              "checksum": 614420372,
+              "seed": 1193410,
+              "microsecondsPerOperation": 0.04660839075390852
+            },
+            {
+              "milliseconds": 42.14632100000017,
+              "checksum": 701742585,
+              "seed": 1193507,
+              "microsecondsPerOperation": 0.04681733314523324
+            },
+            {
+              "milliseconds": 42.84748200000104,
+              "checksum": 789064798,
+              "seed": 1193604,
+              "microsecondsPerOperation": 0.04759620274396963
+            },
+            {
+              "milliseconds": 42.805980000001,
+              "checksum": 876387011,
+              "seed": 1193701,
+              "microsecondsPerOperation": 0.04755010114093303
+            },
+            {
+              "milliseconds": 42.55534799999987,
+              "checksum": 963709224,
+              "seed": 1193798,
+              "microsecondsPerOperation": 0.0472716919805959
+            },
+            {
+              "milliseconds": 42.038517000000866,
+              "checksum": 1051031437,
+              "seed": 1193895,
+              "microsecondsPerOperation": 0.04669758139317981
+            },
+            {
+              "milliseconds": 31.011258000000453,
+              "checksum": 1138353650,
+              "seed": 1193992,
+              "microsecondsPerOperation": 0.034448188183229436
+            }
+          ],
+          "median": 0.0472716919805959,
+          "min": 0.034448188183229436,
+          "max": 0.047708706340277275
+        },
+        {
+          "driver": "quickjs",
+          "count": 98444,
+          "samples": [
+            {
+              "milliseconds": 50.639475107,
+              "checksum": 1502364674,
+              "seed": 1193216,
+              "microsecondsPerOperation": 0.5143987963410671
+            },
+            {
+              "milliseconds": 50.284730196,
+              "checksum": 1511913742,
+              "seed": 1193313,
+              "microsecondsPerOperation": 0.5107952764617447
+            },
+            {
+              "milliseconds": 48.485580921,
+              "checksum": 1521462810,
+              "seed": 1193410,
+              "microsecondsPerOperation": 0.492519411249035
+            },
+            {
+              "milliseconds": 50.225760937,
+              "checksum": 1531011878,
+              "seed": 1193507,
+              "microsecondsPerOperation": 0.5101962632257934
+            },
+            {
+              "milliseconds": 50.423048973,
+              "checksum": 1540560946,
+              "seed": 1193604,
+              "microsecondsPerOperation": 0.5122003268152452
+            },
+            {
+              "milliseconds": 50.367223978,
+              "checksum": 1550110014,
+              "seed": 1193701,
+              "microsecondsPerOperation": 0.5116332531997887
+            },
+            {
+              "milliseconds": 50.347320795,
+              "checksum": 1559659082,
+              "seed": 1193798,
+              "microsecondsPerOperation": 0.5114310754845395
+            },
+            {
+              "milliseconds": 50.459351063,
+              "checksum": 1569208150,
+              "seed": 1193895,
+              "microsecondsPerOperation": 0.5125690856019666
+            },
+            {
+              "milliseconds": 50.250654936,
+              "checksum": 1578757218,
+              "seed": 1193992,
+              "microsecondsPerOperation": 0.5104491379464468
+            }
+          ],
+          "median": 0.5114310754845395,
+          "min": 0.492519411249035,
+          "max": 0.5143987963410671
+        },
+        {
+          "driver": "jss-inline",
+          "count": 36164,
+          "samples": [
+            {
+              "milliseconds": 36.11761099999967,
+              "checksum": 202350950,
+              "seed": 1193216,
+              "microsecondsPerOperation": 0.9987172602588118
+            },
+            {
+              "milliseconds": 36.500943999999436,
+              "checksum": 205858858,
+              "seed": 1193313,
+              "microsecondsPerOperation": 1.0093171109390398
+            },
+            {
+              "milliseconds": 35.85499200000049,
+              "checksum": 209366766,
+              "seed": 1193410,
+              "microsecondsPerOperation": 0.9914553699812104
+            },
+            {
+              "milliseconds": 35.15404800000033,
+              "checksum": 212874674,
+              "seed": 1193507,
+              "microsecondsPerOperation": 0.9720730007742597
+            },
+            {
+              "milliseconds": 35.84518399999979,
+              "checksum": 216382582,
+              "seed": 1193604,
+              "microsecondsPerOperation": 0.9911841610441264
+            },
+            {
+              "milliseconds": 35.77957400000014,
+              "checksum": 219890490,
+              "seed": 1193701,
+              "microsecondsPerOperation": 0.9893699258931572
+            },
+            {
+              "milliseconds": 35.80844699999943,
+              "checksum": 223398398,
+              "seed": 1193798,
+              "microsecondsPerOperation": 0.9901683165578872
+            },
+            {
+              "milliseconds": 35.38476300000002,
+              "checksum": 226906306,
+              "seed": 1193895,
+              "microsecondsPerOperation": 0.9784526877557798
+            },
+            {
+              "milliseconds": 35.771356999999625,
+              "checksum": 230414214,
+              "seed": 1193992,
+              "microsecondsPerOperation": 0.989142710983288
+            }
+          ],
+          "median": 0.9901683165578872,
+          "min": 0.9720730007742597,
+          "max": 1.0093171109390398
+        },
+        {
+          "driver": "jss-worker",
+          "count": 41330,
+          "samples": [
+            {
+              "milliseconds": 41.91208200000074,
+              "checksum": 2071617513,
+              "seed": 1193216,
+              "microsecondsPerOperation": 1.0140837648197614
+            },
+            {
+              "milliseconds": 41.74238499999956,
+              "checksum": 2075626523,
+              "seed": 1193313,
+              "microsecondsPerOperation": 1.0099778611178214
+            },
+            {
+              "milliseconds": 40.48286599999847,
+              "checksum": 2079635533,
+              "seed": 1193410,
+              "microsecondsPerOperation": 0.9795031696104154
+            },
+            {
+              "milliseconds": 41.556870999998864,
+              "checksum": 2083644543,
+              "seed": 1193507,
+              "microsecondsPerOperation": 1.0054892571981338
+            },
+            {
+              "milliseconds": 41.65052999999898,
+              "checksum": 2087653553,
+              "seed": 1193604,
+              "microsecondsPerOperation": 1.0077553834986446
+            },
+            {
+              "milliseconds": 41.62333600000056,
+              "checksum": 2091662563,
+              "seed": 1193701,
+              "microsecondsPerOperation": 1.0070974110815525
+            },
+            {
+              "milliseconds": 41.588322999999946,
+              "checksum": 2095671573,
+              "seed": 1193798,
+              "microsecondsPerOperation": 1.006250254052745
+            },
+            {
+              "milliseconds": 41.02311700000064,
+              "checksum": 2099680583,
+              "seed": 1193895,
+              "microsecondsPerOperation": 0.9925748124848933
+            },
+            {
+              "milliseconds": 43.01065500000004,
+              "checksum": 2103689593,
+              "seed": 1193992,
+              "microsecondsPerOperation": 1.0406642874425367
+            }
+          ],
+          "median": 1.0070974110815525,
+          "min": 0.9795031696104154,
+          "max": 1.0406642874425367
+        }
+      ]
+    },
+    {
+      "id": "call",
+      "name": "Host → guest call",
+      "operation": "one awaited public function call returning a number",
+      "entries": [
+        {
+          "driver": "node",
+          "count": 1369532,
+          "samples": [
+            {
+              "milliseconds": 69.01949500000046,
+              "checksum": 2081150122,
+              "seed": 1193216,
+              "microsecondsPerOperation": 0.05039640913830452
+            },
+            {
+              "milliseconds": 61.95314599999983,
+              "checksum": 2213994726,
+              "seed": 1193313,
+              "microsecondsPerOperation": 0.045236727582853
+            },
+            {
+              "milliseconds": 71.7081700000017,
+              "checksum": 2346839330,
+              "seed": 1193410,
+              "microsecondsPerOperation": 0.05235961627767858
+            },
+            {
+              "milliseconds": 71.69427800000085,
+              "checksum": 2479683934,
+              "seed": 1193507,
+              "microsecondsPerOperation": 0.052349472666575775
+            },
+            {
+              "milliseconds": 71.10016699999869,
+              "checksum": 2612528538,
+              "seed": 1193604,
+              "microsecondsPerOperation": 0.05191566681172743
+            },
+            {
+              "milliseconds": 71.7370719999999,
+              "checksum": 2745373142,
+              "seed": 1193701,
+              "microsecondsPerOperation": 0.05238071983714137
+            },
+            {
+              "milliseconds": 72.76186400000006,
+              "checksum": 2878217746,
+              "seed": 1193798,
+              "microsecondsPerOperation": 0.0531289988112728
+            },
+            {
+              "milliseconds": 72.90482499999962,
+              "checksum": 3011062350,
+              "seed": 1193895,
+              "microsecondsPerOperation": 0.05323338556528772
+            },
+            {
+              "milliseconds": 52.38741100000334,
+              "checksum": 3143906954,
+              "seed": 1193992,
+              "microsecondsPerOperation": 0.038252053256151254
+            }
+          ],
+          "median": 0.052349472666575775,
+          "min": 0.038252053256151254,
+          "max": 0.05323338556528772
+        },
+        {
+          "driver": "node-worker",
+          "count": 6651,
+          "samples": [
+            {
+              "milliseconds": 43.080033000000185,
+              "checksum": 3641215343,
+              "seed": 1193216,
+              "microsecondsPerOperation": 6.477226432115499
+            },
+            {
+              "milliseconds": 42.61605099999906,
+              "checksum": 3641860490,
+              "seed": 1193313,
+              "microsecondsPerOperation": 6.407465193203889
+            },
+            {
+              "milliseconds": 43.38711700000022,
+              "checksum": 3642505637,
+              "seed": 1193410,
+              "microsecondsPerOperation": 6.523397534205415
+            },
+            {
+              "milliseconds": 43.12072999999873,
+              "checksum": 3643150784,
+              "seed": 1193507,
+              "microsecondsPerOperation": 6.483345361599569
+            },
+            {
+              "milliseconds": 42.74506399999882,
+              "checksum": 3643795931,
+              "seed": 1193604,
+              "microsecondsPerOperation": 6.426862727409235
+            },
+            {
+              "milliseconds": 43.256034,
+              "checksum": 3644441078,
+              "seed": 1193701,
+              "microsecondsPerOperation": 6.503688768606224
+            },
+            {
+              "milliseconds": 42.893841999999495,
+              "checksum": 3645086225,
+              "seed": 1193798,
+              "microsecondsPerOperation": 6.449231995188618
+            },
+            {
+              "milliseconds": 42.8802659999983,
+              "checksum": 3645731372,
+              "seed": 1193895,
+              "microsecondsPerOperation": 6.447190798375929
+            },
+            {
+              "milliseconds": 43.560874999999214,
+              "checksum": 3646376519,
+              "seed": 1193992,
+              "microsecondsPerOperation": 6.549522628176096
+            }
+          ],
+          "median": 6.477226432115499,
+          "min": 6.407465193203889,
+          "max": 6.549522628176096
+        },
+        {
+          "driver": "quickjs",
+          "count": 163994,
+          "samples": [
+            {
+              "milliseconds": 49.976525068,
+              "checksum": 2409278213,
+              "seed": 1193216,
+              "microsecondsPerOperation": 0.30474605819725115
+            },
+            {
+              "milliseconds": 49.858986139,
+              "checksum": 2425185631,
+              "seed": 1193313,
+              "microsecondsPerOperation": 0.30402933118894593
+            },
+            {
+              "milliseconds": 48.88994503,
+              "checksum": 2441093049,
+              "seed": 1193410,
+              "microsecondsPerOperation": 0.29812032775589353
+            },
+            {
+              "milliseconds": 49.057471037,
+              "checksum": 2457000467,
+              "seed": 1193507,
+              "microsecondsPerOperation": 0.2991418651718965
+            },
+            {
+              "milliseconds": 49.169857979,
+              "checksum": 2472907885,
+              "seed": 1193604,
+              "microsecondsPerOperation": 0.2998271764759686
+            },
+            {
+              "milliseconds": 48.945398092,
+              "checksum": 2488815303,
+              "seed": 1193701,
+              "microsecondsPerOperation": 0.29845846855372754
+            },
+            {
+              "milliseconds": 49.524302006,
+              "checksum": 2504722721,
+              "seed": 1193798,
+              "microsecondsPerOperation": 0.30198849961583957
+            },
+            {
+              "milliseconds": 49.900847912,
+              "checksum": 2520630139,
+              "seed": 1193895,
+              "microsecondsPerOperation": 0.30428459524128937
+            },
+            {
+              "milliseconds": 48.665107012,
+              "checksum": 2536537557,
+              "seed": 1193992,
+              "microsecondsPerOperation": 0.2967493140724661
+            }
+          ],
+          "median": 0.2998271764759686,
+          "min": 0.2967493140724661,
+          "max": 0.30474605819725115
+        },
+        {
+          "driver": "jss-inline",
+          "count": 1057,
+          "samples": [
+            {
+              "milliseconds": 40.52408299999843,
+              "checksum": 1261245680,
+              "seed": 1193216,
+              "microsecondsPerOperation": 38.33877294228801
+            },
+            {
+              "milliseconds": 42.49577500000123,
+              "checksum": 1261348209,
+              "seed": 1193313,
+              "microsecondsPerOperation": 40.20413907284885
+            },
+            {
+              "milliseconds": 38.78337199999987,
+              "checksum": 1261450738,
+              "seed": 1193410,
+              "microsecondsPerOperation": 36.69193188268673
+            },
+            {
+              "milliseconds": 39.33245600000009,
+              "checksum": 1261553267,
+              "seed": 1193507,
+              "microsecondsPerOperation": 37.21140586565761
+            },
+            {
+              "milliseconds": 39.08003199999985,
+              "checksum": 1261655796,
+              "seed": 1193604,
+              "microsecondsPerOperation": 36.97259413434233
+            },
+            {
+              "milliseconds": 38.205605000001015,
+              "checksum": 1261758325,
+              "seed": 1193701,
+              "microsecondsPerOperation": 36.14532166509084
+            },
+            {
+              "milliseconds": 37.949853000000076,
+              "checksum": 1261860854,
+              "seed": 1193798,
+              "microsecondsPerOperation": 35.90336140018928
+            },
+            {
+              "milliseconds": 38.54381399999875,
+              "checksum": 1261963383,
+              "seed": 1193895,
+              "microsecondsPerOperation": 36.465292336801085
+            },
+            {
+              "milliseconds": 38.98896800000148,
+              "checksum": 1262065912,
+              "seed": 1193992,
+              "microsecondsPerOperation": 36.886440870389286
+            }
+          ],
+          "median": 36.886440870389286,
+          "min": 35.90336140018928,
+          "max": 40.20413907284885
+        },
+        {
+          "driver": "jss-worker",
+          "count": 721,
+          "samples": [
+            {
+              "milliseconds": 37.59539700000096,
+              "checksum": 860319784,
+              "seed": 1193216,
+              "microsecondsPerOperation": 52.14340776699162
+            },
+            {
+              "milliseconds": 51.96753699999863,
+              "checksum": 860389721,
+              "seed": 1193313,
+              "microsecondsPerOperation": 72.07702773924913
+            },
+            {
+              "milliseconds": 41.170445000001564,
+              "checksum": 860459658,
+              "seed": 1193410,
+              "microsecondsPerOperation": 57.10186546463462
+            },
+            {
+              "milliseconds": 37.864519999999175,
+              "checksum": 860529595,
+              "seed": 1193507,
+              "microsecondsPerOperation": 52.516671289874026
+            },
+            {
+              "milliseconds": 39.51278100000127,
+              "checksum": 860599532,
+              "seed": 1193604,
+              "microsecondsPerOperation": 54.802747572817296
+            },
+            {
+              "milliseconds": 38.84889599999951,
+              "checksum": 860669469,
+              "seed": 1193701,
+              "microsecondsPerOperation": 53.88196393897297
+            },
+            {
+              "milliseconds": 36.65884399999959,
+              "checksum": 860739406,
+              "seed": 1193798,
+              "microsecondsPerOperation": 50.844443828016075
+            },
+            {
+              "milliseconds": 45.79452599999968,
+              "checksum": 860809343,
+              "seed": 1193895,
+              "microsecondsPerOperation": 63.51529264909803
+            },
+            {
+              "milliseconds": 37.190245000001596,
+              "checksum": 860879280,
+              "seed": 1193992,
+              "microsecondsPerOperation": 51.58147711512011
+            }
+          ],
+          "median": 53.88196393897297,
+          "min": 50.844443828016075,
+          "max": 72.07702773924913
+        }
+      ]
+    },
+    {
+      "id": "host-scalar",
+      "name": "Guest → host scalar",
+      "operation": "one awaited host callback with a number",
+      "entries": [
+        {
+          "driver": "node",
+          "count": 1048576,
+          "samples": [
+            {
+              "milliseconds": 38.97151400000075,
+              "checksum": 1358430208,
+              "seed": 1193216,
+              "microsecondsPerOperation": 0.03716613197326732
+            },
+            {
+              "milliseconds": 41.99095800000214,
+              "checksum": 1460142080,
+              "seed": 1193313,
+              "microsecondsPerOperation": 0.040045698165895594
+            },
+            {
+              "milliseconds": 41.167419000001246,
+              "checksum": 1561853952,
+              "seed": 1193410,
+              "microsecondsPerOperation": 0.039260310173035856
+            },
+            {
+              "milliseconds": 42.164761,
+              "checksum": 1663565824,
+              "seed": 1193507,
+              "microsecondsPerOperation": 0.04021144962310791
+            },
+            {
+              "milliseconds": 40.00348500000109,
+              "checksum": 1765277696,
+              "seed": 1193604,
+              "microsecondsPerOperation": 0.03815029621124372
+            },
+            {
+              "milliseconds": 41.4676040000013,
+              "checksum": 1866989568,
+              "seed": 1193701,
+              "microsecondsPerOperation": 0.03954658889770632
+            },
+            {
+              "milliseconds": 41.178132000000915,
+              "checksum": 1968701440,
+              "seed": 1193798,
+              "microsecondsPerOperation": 0.0392705268859872
+            },
+            {
+              "milliseconds": 35.647673999999824,
+              "checksum": 2070413312,
+              "seed": 1193895,
+              "microsecondsPerOperation": 0.033996271133422684
+            },
+            {
+              "milliseconds": 39.85749699999724,
+              "checksum": 2172125184,
+              "seed": 1193992,
+              "microsecondsPerOperation": 0.038011071205136526
+            }
+          ],
+          "median": 0.039260310173035856,
+          "min": 0.033996271133422684,
+          "max": 0.04021144962310791
+        },
+        {
+          "driver": "node-worker",
+          "count": 5992,
+          "samples": [
+            {
+              "milliseconds": 46.53793399999995,
+              "checksum": 2854875756,
+              "seed": 1193216,
+              "microsecondsPerOperation": 7.7666779038718206
+            },
+            {
+              "milliseconds": 48.26787999999942,
+              "checksum": 2855456980,
+              "seed": 1193313,
+              "microsecondsPerOperation": 8.05538718291045
+            },
+            {
+              "milliseconds": 39.37826800000039,
+              "checksum": 2856038204,
+              "seed": 1193410,
+              "microsecondsPerOperation": 6.571807076101534
+            },
+            {
+              "milliseconds": 40.872583000000304,
+              "checksum": 2856619428,
+              "seed": 1193507,
+              "microsecondsPerOperation": 6.821192089452654
+            },
+            {
+              "milliseconds": 39.93073899999945,
+              "checksum": 2857200652,
+              "seed": 1193604,
+              "microsecondsPerOperation": 6.6640085113483725
+            },
+            {
+              "milliseconds": 41.50950599999851,
+              "checksum": 2857781876,
+              "seed": 1193701,
+              "microsecondsPerOperation": 6.927487650200018
+            },
+            {
+              "milliseconds": 41.74406699999963,
+              "checksum": 2858363100,
+              "seed": 1193798,
+              "microsecondsPerOperation": 6.9666333444592174
+            },
+            {
+              "milliseconds": 41.28603399999702,
+              "checksum": 2858944324,
+              "seed": 1193895,
+              "microsecondsPerOperation": 6.890192590119662
+            },
+            {
+              "milliseconds": 42.30568299999868,
+              "checksum": 2859525548,
+              "seed": 1193992,
+              "microsecondsPerOperation": 7.060360981308191
+            }
+          ],
+          "median": 6.927487650200018,
+          "min": 6.571807076101534,
+          "max": 8.05538718291045
+        },
+        {
+          "driver": "quickjs",
+          "count": 91520,
+          "samples": [
+            {
+              "milliseconds": 51.751259089,
+              "checksum": 1830364480,
+              "seed": 1193216,
+              "microsecondsPerOperation": 0.5654639323535839
+            },
+            {
+              "milliseconds": 50.61497283,
+              "checksum": 1839241920,
+              "seed": 1193313,
+              "microsecondsPerOperation": 0.5530482171110139
+            },
+            {
+              "milliseconds": 50.358203888,
+              "checksum": 1848119360,
+              "seed": 1193410,
+              "microsecondsPerOperation": 0.5502426124125873
+            },
+            {
+              "milliseconds": 49.600431204,
+              "checksum": 1856996800,
+              "seed": 1193507,
+              "microsecondsPerOperation": 0.5419627535402098
+            },
+            {
+              "milliseconds": 49.639673948,
+              "checksum": 1865874240,
+              "seed": 1193604,
+              "microsecondsPerOperation": 0.542391542263986
+            },
+            {
+              "milliseconds": 50.502115011,
+              "checksum": 1874751680,
+              "seed": 1193701,
+              "microsecondsPerOperation": 0.5518150678649476
+            },
+            {
+              "milliseconds": 50.555454016,
+              "checksum": 1883629120,
+              "seed": 1193798,
+              "microsecondsPerOperation": 0.5523978804195804
+            },
+            {
+              "milliseconds": 51.921733856,
+              "checksum": 1892506560,
+              "seed": 1193895,
+              "microsecondsPerOperation": 0.5673266374125875
+            },
+            {
+              "milliseconds": 51.761318922,
+              "checksum": 1901384000,
+              "seed": 1193992,
+              "microsecondsPerOperation": 0.5655738518575175
+            }
+          ],
+          "median": 0.5523978804195804,
+          "min": 0.5419627535402098,
+          "max": 0.5673266374125875
+        },
+        {
+          "driver": "jss-inline",
+          "count": 991,
+          "samples": [
+            {
+              "milliseconds": 48.499125999998796,
+              "checksum": 1182492401,
+              "seed": 1193216,
+              "microsecondsPerOperation": 48.93958224016024
+            },
+            {
+              "milliseconds": 48.55597200000193,
+              "checksum": 1182588528,
+              "seed": 1193313,
+              "microsecondsPerOperation": 48.99694450050649
+            },
+            {
+              "milliseconds": 47.014907000000676,
+              "checksum": 1182684655,
+              "seed": 1193410,
+              "microsecondsPerOperation": 47.441883955601085
+            },
+            {
+              "milliseconds": 47.88824300000124,
+              "checksum": 1182780782,
+              "seed": 1193507,
+              "microsecondsPerOperation": 48.32315136226159
+            },
+            {
+              "milliseconds": 46.9887630000012,
+              "checksum": 1182876909,
+              "seed": 1193604,
+              "microsecondsPerOperation": 47.41550252270555
+            },
+            {
+              "milliseconds": 48.68587800000023,
+              "checksum": 1182973036,
+              "seed": 1193701,
+              "microsecondsPerOperation": 49.1280302724523
+            },
+            {
+              "milliseconds": 48.19438900000023,
+              "checksum": 1183069163,
+              "seed": 1193798,
+              "microsecondsPerOperation": 48.63207769929387
+            },
+            {
+              "milliseconds": 48.55689799999891,
+              "checksum": 1183165290,
+              "seed": 1193895,
+              "microsecondsPerOperation": 48.99787891019063
+            },
+            {
+              "milliseconds": 48.464443000000756,
+              "checksum": 1183261417,
+              "seed": 1193992,
+              "microsecondsPerOperation": 48.904584258325684
+            }
+          ],
+          "median": 48.904584258325684,
+          "min": 47.41550252270555,
+          "max": 49.1280302724523
+        },
+        {
+          "driver": "jss-worker",
+          "count": 723,
+          "samples": [
+            {
+              "milliseconds": 45.97786500000075,
+              "checksum": 862706251,
+              "seed": 1193216,
+              "microsecondsPerOperation": 63.59317427385996
+            },
+            {
+              "milliseconds": 46.20883200000026,
+              "checksum": 862776382,
+              "seed": 1193313,
+              "microsecondsPerOperation": 63.91263070539455
+            },
+            {
+              "milliseconds": 43.06839399999808,
+              "checksum": 862846513,
+              "seed": 1193410,
+              "microsecondsPerOperation": 59.56900968187839
+            },
+            {
+              "milliseconds": 62.81904500000019,
+              "checksum": 862916644,
+              "seed": 1193507,
+              "microsecondsPerOperation": 86.88664591977896
+            },
+            {
+              "milliseconds": 44.237496000001556,
+              "checksum": 862986775,
+              "seed": 1193604,
+              "microsecondsPerOperation": 61.18602489626771
+            },
+            {
+              "milliseconds": 45.95154100000218,
+              "checksum": 863056906,
+              "seed": 1193701,
+              "microsecondsPerOperation": 63.55676486860606
+            },
+            {
+              "milliseconds": 45.718331000000035,
+              "checksum": 863127037,
+              "seed": 1193798,
+              "microsecondsPerOperation": 63.234206085753854
+            },
+            {
+              "milliseconds": 45.334382999997615,
+              "checksum": 863197168,
+              "seed": 1193895,
+              "microsecondsPerOperation": 62.70315767634525
+            },
+            {
+              "milliseconds": 47.7985179999996,
+              "checksum": 863267299,
+              "seed": 1193992,
+              "microsecondsPerOperation": 66.11136652835353
+            }
+          ],
+          "median": 63.55676486860606,
+          "min": 59.56900968187839,
+          "max": 86.88664591977896
+        }
+      ]
+    },
+    {
+      "id": "host-copy-4k",
+      "name": "Copy round trip 4 KiB",
+      "operation": "one awaited copy callback carrying 4 KiB out and 4 KiB back; consume length and four byte reads",
+      "entries": [
+        {
+          "driver": "node",
+          "count": 59528,
+          "samples": [
+            {
+              "milliseconds": 63.30807099999947,
+              "checksum": 269452628,
+              "seed": 1193216,
+              "microsecondsPerOperation": 1.0635007223491377
+            },
+            {
+              "milliseconds": 63.65726899999936,
+              "checksum": 270879175,
+              "seed": 1193313,
+              "microsecondsPerOperation": 1.0693668357747508
+            },
+            {
+              "milliseconds": 61.12961500000165,
+              "checksum": 269927226,
+              "seed": 1193410,
+              "microsecondsPerOperation": 1.0269052378712815
+            },
+            {
+              "milliseconds": 61.151073000000906,
+              "checksum": 259922349,
+              "seed": 1193507,
+              "microsecondsPerOperation": 1.02726570689425
+            },
+            {
+              "milliseconds": 61.57110400000238,
+              "checksum": 270874400,
+              "seed": 1193604,
+              "microsecondsPerOperation": 1.034321730950181
+            },
+            {
+              "milliseconds": 63.42163099999743,
+              "checksum": 269445267,
+              "seed": 1193701,
+              "microsecondsPerOperation": 1.065408396048875
+            },
+            {
+              "milliseconds": 62.04289699999936,
+              "checksum": 266107654,
+              "seed": 1193798,
+              "microsecondsPerOperation": 1.0422472953903936
+            },
+            {
+              "milliseconds": 62.54450300000099,
+              "checksum": 270393465,
+              "seed": 1193895,
+              "microsecondsPerOperation": 1.0506736829727352
+            },
+            {
+              "milliseconds": 61.88193600000159,
+              "checksum": 255150828,
+              "seed": 1193992,
+              "microsecondsPerOperation": 1.039543340948824
+            }
+          ],
+          "median": 1.0422472953903936,
+          "min": 1.0269052378712815,
+          "max": 1.0693668357747508
+        },
+        {
+          "driver": "node-worker",
+          "count": 3820,
+          "samples": [
+            {
+              "milliseconds": 45.72017700000288,
+              "checksum": 17290070,
+              "seed": 1193216,
+              "microsecondsPerOperation": 11.968632722513842
+            },
+            {
+              "milliseconds": 46.68480400000044,
+              "checksum": 17381410,
+              "seed": 1193313,
+              "microsecondsPerOperation": 12.221152879581267
+            },
+            {
+              "milliseconds": 45.347914000001765,
+              "checksum": 17323758,
+              "seed": 1193410,
+              "microsecondsPerOperation": 11.871181675393132
+            },
+            {
+              "milliseconds": 48.990201000000525,
+              "checksum": 16678330,
+              "seed": 1193507,
+              "microsecondsPerOperation": 12.824659947644117
+            },
+            {
+              "milliseconds": 49.11044699999911,
+              "checksum": 17382278,
+              "seed": 1193604,
+              "microsecondsPerOperation": 12.856137958114951
+            },
+            {
+              "milliseconds": 44.11274200000116,
+              "checksum": 17291090,
+              "seed": 1193701,
+              "microsecondsPerOperation": 11.547838219895592
+            },
+            {
+              "milliseconds": 44.98306799999773,
+              "checksum": 17075230,
+              "seed": 1193798,
+              "microsecondsPerOperation": 11.775672251308306
+            },
+            {
+              "milliseconds": 47.131437000000005,
+              "checksum": 17352682,
+              "seed": 1193895,
+              "microsecondsPerOperation": 12.338072513089006
+            },
+            {
+              "milliseconds": 47.34387799999968,
+              "checksum": 16372150,
+              "seed": 1193992,
+              "microsecondsPerOperation": 12.393685340314052
+            }
+          ],
+          "median": 12.221152879581267,
+          "min": 11.547838219895592,
+          "max": 12.856137958114951
+        },
+        {
+          "driver": "quickjs",
+          "count": 43828,
+          "samples": [
+            {
+              "milliseconds": 50.522238016,
+              "checksum": 198386218,
+              "seed": 1193216,
+              "microsecondsPerOperation": 1.152738843113991
+            },
+            {
+              "milliseconds": 50.372438908,
+              "checksum": 199436588,
+              "seed": 1193313,
+              "microsecondsPerOperation": 1.149320957105047
+            },
+            {
+              "milliseconds": 50.011641979,
+              "checksum": 198736430,
+              "seed": 1193410,
+              "microsecondsPerOperation": 1.1410888468330747
+            },
+            {
+              "milliseconds": 50.977138042,
+              "checksum": 191369520,
+              "seed": 1193507,
+              "microsecondsPerOperation": 1.1631180533448937
+            },
+            {
+              "milliseconds": 50.20896697,
+              "checksum": 199434546,
+              "seed": 1193604,
+              "microsecondsPerOperation": 1.1455911054576984
+            },
+            {
+              "milliseconds": 50.631106138,
+              "checksum": 198380340,
+              "seed": 1193701,
+              "microsecondsPerOperation": 1.1552228287396187
+            },
+            {
+              "milliseconds": 50.021759987,
+              "checksum": 195923510,
+              "seed": 1193798,
+              "microsecondsPerOperation": 1.141319704002008
+            },
+            {
+              "milliseconds": 50.277250051,
+              "checksum": 199081272,
+              "seed": 1193895,
+              "microsecondsPerOperation": 1.1471490839417724
+            },
+            {
+              "milliseconds": 49.901310205,
+              "checksum": 187856442,
+              "seed": 1193992,
+              "microsecondsPerOperation": 1.138571465843753
+            }
+          ],
+          "median": 1.1471490839417724,
+          "min": 1.138571465843753,
+          "max": 1.1631180533448937
+        },
+        {
+          "driver": "jss-inline",
+          "count": 471,
+          "samples": [
+            {
+              "milliseconds": 46.7191759999987,
+              "checksum": 2130915,
+              "seed": 1193216,
+              "microsecondsPerOperation": 99.19145647558109
+            },
+            {
+              "milliseconds": 45.97231500000271,
+              "checksum": 2142105,
+              "seed": 1193313,
+              "microsecondsPerOperation": 97.60576433121594
+            },
+            {
+              "milliseconds": 44.51775500000076,
+              "checksum": 2136399,
+              "seed": 1193410,
+              "microsecondsPerOperation": 94.51752653927974
+            },
+            {
+              "milliseconds": 45.207933999998204,
+              "checksum": 2055429,
+              "seed": 1193507,
+              "microsecondsPerOperation": 95.9828747346034
+            },
+            {
+              "milliseconds": 47.85877800000162,
+              "checksum": 2144443,
+              "seed": 1193604,
+              "microsecondsPerOperation": 101.61099363057669
+            },
+            {
+              "milliseconds": 45.73676699999851,
+              "checksum": 2131569,
+              "seed": 1193701,
+              "microsecondsPerOperation": 97.105662420379
+            },
+            {
+              "milliseconds": 44.818490000001475,
+              "checksum": 2104359,
+              "seed": 1193798,
+              "microsecondsPerOperation": 95.15602972399464
+            },
+            {
+              "milliseconds": 45.05919900000299,
+              "checksum": 2140893,
+              "seed": 1193895,
+              "microsecondsPerOperation": 95.66708917198088
+            },
+            {
+              "milliseconds": 44.91616200000135,
+              "checksum": 2017683,
+              "seed": 1193992,
+              "microsecondsPerOperation": 95.36340127388821
+            }
+          ],
+          "median": 95.9828747346034,
+          "min": 94.51752653927974,
+          "max": 101.61099363057669
+        },
+        {
+          "driver": "jss-worker",
+          "count": 416,
+          "samples": [
+            {
+              "milliseconds": 51.18454899999779,
+              "checksum": 1883024,
+              "seed": 1193216,
+              "microsecondsPerOperation": 123.03978124999468
+            },
+            {
+              "milliseconds": 46.23882700000104,
+              "checksum": 1892995,
+              "seed": 1193313,
+              "microsecondsPerOperation": 111.15102644231018
+            },
+            {
+              "milliseconds": 47.04992399999901,
+              "checksum": 1886326,
+              "seed": 1193410,
+              "microsecondsPerOperation": 113.10077884615147
+            },
+            {
+              "milliseconds": 48.54269699999713,
+              "checksum": 1816425,
+              "seed": 1193507,
+              "microsecondsPerOperation": 116.68917548076234
+            },
+            {
+              "milliseconds": 46.25700499999948,
+              "checksum": 1892956,
+              "seed": 1193604,
+              "microsecondsPerOperation": 111.19472355769106
+            },
+            {
+              "milliseconds": 46.81119699999908,
+              "checksum": 1882959,
+              "seed": 1193701,
+              "microsecondsPerOperation": 112.5269158653824
+            },
+            {
+              "milliseconds": 49.33939400000236,
+              "checksum": 1859650,
+              "seed": 1193798,
+              "microsecondsPerOperation": 118.60431250000566
+            },
+            {
+              "milliseconds": 48.369402999996964,
+              "checksum": 1889589,
+              "seed": 1193895,
+              "microsecondsPerOperation": 116.27260336537732
+            },
+            {
+              "milliseconds": 48.86775899999702,
+              "checksum": 1783080,
+              "seed": 1193992,
+              "microsecondsPerOperation": 117.47057451922362
+            }
+          ],
+          "median": 116.27260336537732,
+          "min": 111.15102644231018,
+          "max": 123.03978124999468
+        }
+      ]
+    },
+    {
+      "id": "host-copy-64k",
+      "name": "Copy round trip 64 KiB",
+      "operation": "one awaited copy callback carrying 64 KiB out and 64 KiB back; consume length and four byte reads",
+      "entries": [
+        {
+          "driver": "node",
+          "count": 5840,
+          "samples": [
+            {
+              "milliseconds": 93.12525500000265,
+              "checksum": 385243080,
+              "seed": 1193216,
+              "microsecondsPerOperation": 15.946105308219632
+            },
+            {
+              "milliseconds": 79.92192100000102,
+              "checksum": 385382881,
+              "seed": 1193313,
+              "microsecondsPerOperation": 13.685260445205655
+            },
+            {
+              "milliseconds": 82.05713999999716,
+              "checksum": 385292538,
+              "seed": 1193410,
+              "microsecondsPerOperation": 14.050880136985816
+            },
+            {
+              "milliseconds": 83.92166999999972,
+              "checksum": 384307987,
+              "seed": 1193507,
+              "microsecondsPerOperation": 14.370148972602692
+            },
+            {
+              "milliseconds": 83.64835199999652,
+              "checksum": 385383980,
+              "seed": 1193604,
+              "microsecondsPerOperation": 14.323347945204883
+            },
+            {
+              "milliseconds": 77.62196799999947,
+              "checksum": 385243461,
+              "seed": 1193701,
+              "microsecondsPerOperation": 13.291432876712237
+            },
+            {
+              "milliseconds": 82.66891000000032,
+              "checksum": 384914782,
+              "seed": 1193798,
+              "microsecondsPerOperation": 14.155635273972658
+            },
+            {
+              "milliseconds": 75.09381700000085,
+              "checksum": 385338487,
+              "seed": 1193895,
+              "microsecondsPerOperation": 12.858530308219324
+            },
+            {
+              "milliseconds": 81.95397999999841,
+              "checksum": 383839888,
+              "seed": 1193992,
+              "microsecondsPerOperation": 14.033215753424384
+            }
+          ],
+          "median": 14.050880136985816,
+          "min": 12.858530308219324,
+          "max": 15.946105308219632
+        },
+        {
+          "driver": "node-worker",
+          "count": 994,
+          "samples": [
+            {
+              "milliseconds": 44.84866200000033,
+              "checksum": 65570611,
+              "seed": 1193216,
+              "microsecondsPerOperation": 45.11937826961804
+            },
+            {
+              "milliseconds": 42.67892800000118,
+              "checksum": 65594105,
+              "seed": 1193313,
+              "microsecondsPerOperation": 42.9365472837034
+            },
+            {
+              "milliseconds": 47.92805600000065,
+              "checksum": 65578687,
+              "seed": 1193410,
+              "microsecondsPerOperation": 48.21736016096645
+            },
+            {
+              "milliseconds": 45.62871499999892,
+              "checksum": 65411205,
+              "seed": 1193507,
+              "microsecondsPerOperation": 45.90413983903312
+            },
+            {
+              "milliseconds": 55.22660700000051,
+              "checksum": 65594187,
+              "seed": 1193604,
+              "microsecondsPerOperation": 55.55996680080535
+            },
+            {
+              "milliseconds": 44.23667800000112,
+              "checksum": 65570833,
+              "seed": 1193701,
+              "microsecondsPerOperation": 44.50370020120837
+            },
+            {
+              "milliseconds": 44.368546999998216,
+              "checksum": 65514455,
+              "seed": 1193798,
+              "microsecondsPerOperation": 44.63636519114509
+            },
+            {
+              "milliseconds": 48.66790799999944,
+              "checksum": 65586333,
+              "seed": 1193895,
+              "microsecondsPerOperation": 48.9616780684099
+            },
+            {
+              "milliseconds": 50.042003000002296,
+              "checksum": 65331555,
+              "seed": 1193992,
+              "microsecondsPerOperation": 50.34406740442887
+            }
+          ],
+          "median": 45.90413983903312,
+          "min": 42.9365472837034,
+          "max": 55.55996680080535
+        },
+        {
+          "driver": "quickjs",
+          "count": 15677,
+          "samples": [
+            {
+              "milliseconds": 49.709232807,
+              "checksum": 1034156366,
+              "seed": 1193216,
+              "microsecondsPerOperation": 3.170838349620463
+            },
+            {
+              "milliseconds": 50.505496025,
+              "checksum": 1034532091,
+              "seed": 1193313,
+              "microsecondsPerOperation": 3.221630160426102
+            },
+            {
+              "milliseconds": 48.394205809,
+              "checksum": 1034281384,
+              "seed": 1193410,
+              "microsecondsPerOperation": 3.0869557829304077
+            },
+            {
+              "milliseconds": 50.34926486,
+              "checksum": 1031646549,
+              "seed": 1193507,
+              "microsecondsPerOperation": 3.211664531479237
+            },
+            {
+              "milliseconds": 50.627475023,
+              "checksum": 1034531842,
+              "seed": 1193604,
+              "microsecondsPerOperation": 3.2294109219238374
+            },
+            {
+              "milliseconds": 50.72973609,
+              "checksum": 1034154159,
+              "seed": 1193701,
+              "microsecondsPerOperation": 3.235933921668687
+            },
+            {
+              "milliseconds": 49.924041986,
+              "checksum": 1033275484,
+              "seed": 1193798,
+              "microsecondsPerOperation": 3.1845405361995276
+            },
+            {
+              "milliseconds": 50.264689922,
+              "checksum": 1034404617,
+              "seed": 1193895,
+              "microsecondsPerOperation": 3.206269689481406
+            },
+            {
+              "milliseconds": 50.183181047,
+              "checksum": 1030389942,
+              "seed": 1193992,
+              "microsecondsPerOperation": 3.2010704246348154
+            }
+          ],
+          "median": 3.206269689481406,
+          "min": 3.0869557829304077,
+          "max": 3.235933921668687
+        },
+        {
+          "driver": "jss-inline",
+          "count": 355,
+          "samples": [
+            {
+              "milliseconds": 47.048516999999265,
+              "checksum": 23417861,
+              "seed": 1193216,
+              "microsecondsPerOperation": 132.53103380281482
+            },
+            {
+              "milliseconds": 50.27486100000169,
+              "checksum": 23426050,
+              "seed": 1193313,
+              "microsecondsPerOperation": 141.61932676056816
+            },
+            {
+              "milliseconds": 61.993822000000364,
+              "checksum": 23421183,
+              "seed": 1193410,
+              "microsecondsPerOperation": 174.6304845070433
+            },
+            {
+              "milliseconds": 49.56208300000071,
+              "checksum": 23360764,
+              "seed": 1193507,
+              "microsecondsPerOperation": 139.6115014084527
+            },
+            {
+              "milliseconds": 49.039928999998665,
+              "checksum": 23426297,
+              "seed": 1193604,
+              "microsecondsPerOperation": 138.14064507041877
+            },
+            {
+              "milliseconds": 51.47876499999984,
+              "checksum": 23418614,
+              "seed": 1193701,
+              "microsecondsPerOperation": 145.01060563380236
+            },
+            {
+              "milliseconds": 51.782687000002625,
+              "checksum": 23397619,
+              "seed": 1193798,
+              "microsecondsPerOperation": 145.86672394366937
+            },
+            {
+              "milliseconds": 53.43539099999907,
+              "checksum": 23423728,
+              "seed": 1193895,
+              "microsecondsPerOperation": 150.52222816901147
+            },
+            {
+              "milliseconds": 53.44673999999941,
+              "checksum": 23332333,
+              "seed": 1193992,
+              "microsecondsPerOperation": 150.55419718309693
+            }
+          ],
+          "median": 145.01060563380236,
+          "min": 132.53103380281482,
+          "max": 174.6304845070433
+        },
+        {
+          "driver": "jss-worker",
+          "count": 256,
+          "samples": [
+            {
+              "milliseconds": 45.43846300000223,
+              "checksum": 16887424,
+              "seed": 1193216,
+              "microsecondsPerOperation": 177.4939960937587
+            },
+            {
+              "milliseconds": 44.954179000000295,
+              "checksum": 16893560,
+              "seed": 1193313,
+              "microsecondsPerOperation": 175.60226171875115
+            },
+            {
+              "milliseconds": 40.2625509999998,
+              "checksum": 16889456,
+              "seed": 1193410,
+              "microsecondsPerOperation": 157.27558984374923
+            },
+            {
+              "milliseconds": 51.78479800000059,
+              "checksum": 16846440,
+              "seed": 1193507,
+              "microsecondsPerOperation": 202.2843671875023
+            },
+            {
+              "milliseconds": 42.36997000000338,
+              "checksum": 16893536,
+              "seed": 1193604,
+              "microsecondsPerOperation": 165.5076953125132
+            },
+            {
+              "milliseconds": 43.77211299999908,
+              "checksum": 16887384,
+              "seed": 1193701,
+              "microsecondsPerOperation": 170.9848164062464
+            },
+            {
+              "milliseconds": 40.381476999998995,
+              "checksum": 16873040,
+              "seed": 1193798,
+              "microsecondsPerOperation": 157.74014453124607
+            },
+            {
+              "milliseconds": 57.20578899999964,
+              "checksum": 16891464,
+              "seed": 1193895,
+              "microsecondsPerOperation": 223.4601132812486
+            },
+            {
+              "milliseconds": 41.69644999999946,
+              "checksum": 16825920,
+              "seed": 1193992,
+              "microsecondsPerOperation": 162.87675781249789
+            }
+          ],
+          "median": 170.9848164062464,
+          "min": 157.27558984374923,
+          "max": 223.4601132812486
+        }
+      ]
+    },
+    {
+      "id": "guest-scan-64k",
+      "name": "Guest scan 64 KiB",
+      "operation": "sum every byte of a prepared guest buffer, without a host callback",
+      "entries": [
+        {
+          "driver": "node",
+          "count": 1365,
+          "samples": [
+            {
+              "milliseconds": 49.62673600000562,
+              "checksum": 2815808050,
+              "seed": 1193216,
+              "microsecondsPerOperation": 36.35658315018727
+            },
+            {
+              "milliseconds": 50.141233999995166,
+              "checksum": 2815675645,
+              "seed": 1193313,
+              "microsecondsPerOperation": 36.73350476190122
+            },
+            {
+              "milliseconds": 50.28978300000017,
+              "checksum": 2815543240,
+              "seed": 1193410,
+              "microsecondsPerOperation": 36.84233186813199
+            },
+            {
+              "milliseconds": 49.96120100000553,
+              "checksum": 2815760275,
+              "seed": 1193507,
+              "microsecondsPerOperation": 36.60161245421651
+            },
+            {
+              "milliseconds": 50.007211000003736,
+              "checksum": 2815627870,
+              "seed": 1193604,
+              "microsecondsPerOperation": 36.63531941392215
+            },
+            {
+              "milliseconds": 49.96785299999465,
+              "checksum": 2815495465,
+              "seed": 1193701,
+              "microsecondsPerOperation": 36.606485714281796
+            },
+            {
+              "milliseconds": 50.00464600000123,
+              "checksum": 2815712500,
+              "seed": 1193798,
+              "microsecondsPerOperation": 36.6334402930412
+            },
+            {
+              "milliseconds": 49.950080000002345,
+              "checksum": 2815580095,
+              "seed": 1193895,
+              "microsecondsPerOperation": 36.59346520146692
+            },
+            {
+              "milliseconds": 50.07823400000052,
+              "checksum": 2815797130,
+              "seed": 1193992,
+              "microsecondsPerOperation": 36.687350915751296
+            }
+          ],
+          "median": 36.6334402930412,
+          "min": 36.35658315018727,
+          "max": 36.84233186813199
+        },
+        {
+          "driver": "node-worker",
+          "count": 1608,
+          "samples": [
+            {
+              "milliseconds": 49.47674199999892,
+              "checksum": 551313660,
+              "seed": 1193216,
+              "microsecondsPerOperation": 30.76911815920331
+            },
+            {
+              "milliseconds": 50.23148900000524,
+              "checksum": 551157684,
+              "seed": 1193313,
+              "microsecondsPerOperation": 31.23848818408286
+            },
+            {
+              "milliseconds": 50.55958899999678,
+              "checksum": 551001708,
+              "seed": 1193410,
+              "microsecondsPerOperation": 31.44253047263481
+            },
+            {
+              "milliseconds": 50.608359999998356,
+              "checksum": 551257380,
+              "seed": 1193507,
+              "microsecondsPerOperation": 31.472860696516392
+            },
+            {
+              "milliseconds": 50.338958000000275,
+              "checksum": 551101404,
+              "seed": 1193604,
+              "microsecondsPerOperation": 31.305322139303655
+            },
+            {
+              "milliseconds": 50.55678199999966,
+              "checksum": 550945428,
+              "seed": 1193701,
+              "microsecondsPerOperation": 31.440784825870434
+            },
+            {
+              "milliseconds": 50.34728399999585,
+              "checksum": 551201100,
+              "seed": 1193798,
+              "microsecondsPerOperation": 31.310499999997422
+            },
+            {
+              "milliseconds": 50.50906599999871,
+              "checksum": 551045124,
+              "seed": 1193895,
+              "microsecondsPerOperation": 31.411110696516612
+            },
+            {
+              "milliseconds": 50.45239100000617,
+              "checksum": 551300796,
+              "seed": 1193992,
+              "microsecondsPerOperation": 31.375865049755085
+            }
+          ],
+          "median": 31.375865049755085,
+          "min": 30.76911815920331,
+          "max": 31.472860696516392
+        },
+        {
+          "driver": "quickjs",
+          "count": 16,
+          "samples": [
+            {
+              "milliseconds": 50.538504124,
+              "checksum": 133693560,
+              "seed": 1193216,
+              "microsecondsPerOperation": 3158.65650775
+            },
+            {
+              "milliseconds": 51.798567057,
+              "checksum": 133692008,
+              "seed": 1193313,
+              "microsecondsPerOperation": 3237.4104410625
+            },
+            {
+              "milliseconds": 51.034649134,
+              "checksum": 133690456,
+              "seed": 1193410,
+              "microsecondsPerOperation": 3189.665570875
+            },
+            {
+              "milliseconds": 51.962254047,
+              "checksum": 133693000,
+              "seed": 1193507,
+              "microsecondsPerOperation": 3247.6408779375
+            },
+            {
+              "milliseconds": 51.936917067,
+              "checksum": 133691448,
+              "seed": 1193604,
+              "microsecondsPerOperation": 3246.0573166875
+            },
+            {
+              "milliseconds": 51.572931051,
+              "checksum": 133689896,
+              "seed": 1193701,
+              "microsecondsPerOperation": 3223.3081906875
+            },
+            {
+              "milliseconds": 51.67084384,
+              "checksum": 133692440,
+              "seed": 1193798,
+              "microsecondsPerOperation": 3229.42774
+            },
+            {
+              "milliseconds": 51.490813017,
+              "checksum": 133690888,
+              "seed": 1193895,
+              "microsecondsPerOperation": 3218.1758135625
+            },
+            {
+              "milliseconds": 51.705811977,
+              "checksum": 133693432,
+              "seed": 1193992,
+              "microsecondsPerOperation": 3231.6132485625003
+            }
+          ],
+          "median": 3229.42774,
+          "min": 3158.65650775,
+          "max": 3247.6408779375
+        },
+        {
+          "driver": "jss-inline",
+          "count": 9,
+          "samples": [
+            {
+              "milliseconds": 48.83438400000159,
+              "checksum": 75202596,
+              "seed": 1193216,
+              "microsecondsPerOperation": 5426.042666666844
+            },
+            {
+              "milliseconds": 48.49728699999832,
+              "checksum": 75201723,
+              "seed": 1193313,
+              "microsecondsPerOperation": 5388.587444444258
+            },
+            {
+              "milliseconds": 49.12367899999663,
+              "checksum": 75200850,
+              "seed": 1193410,
+              "microsecondsPerOperation": 5458.186555555181
+            },
+            {
+              "milliseconds": 48.64944100000139,
+              "checksum": 75202281,
+              "seed": 1193507,
+              "microsecondsPerOperation": 5405.493444444599
+            },
+            {
+              "milliseconds": 48.52759299999889,
+              "checksum": 75201408,
+              "seed": 1193604,
+              "microsecondsPerOperation": 5391.954777777654
+            },
+            {
+              "milliseconds": 49.27920599999925,
+              "checksum": 75200535,
+              "seed": 1193701,
+              "microsecondsPerOperation": 5475.46733333325
+            },
+            {
+              "milliseconds": 48.40361600000324,
+              "checksum": 75201966,
+              "seed": 1193798,
+              "microsecondsPerOperation": 5378.179555555916
+            },
+            {
+              "milliseconds": 47.84836300000461,
+              "checksum": 75201093,
+              "seed": 1193895,
+              "microsecondsPerOperation": 5316.48477777829
+            },
+            {
+              "milliseconds": 48.63517100000172,
+              "checksum": 75202524,
+              "seed": 1193992,
+              "microsecondsPerOperation": 5403.90788888908
+            }
+          ],
+          "median": 5403.90788888908,
+          "min": 5316.48477777829,
+          "max": 5475.46733333325
+        },
+        {
+          "driver": "jss-worker",
+          "count": 9,
+          "samples": [
+            {
+              "milliseconds": 47.64033600000403,
+              "checksum": 75202596,
+              "seed": 1193216,
+              "microsecondsPerOperation": 5293.370666667114
+            },
+            {
+              "milliseconds": 49.256062000000384,
+              "checksum": 75201723,
+              "seed": 1193313,
+              "microsecondsPerOperation": 5472.8957777778205
+            },
+            {
+              "milliseconds": 48.53825499999948,
+              "checksum": 75200850,
+              "seed": 1193410,
+              "microsecondsPerOperation": 5393.139444444387
+            },
+            {
+              "milliseconds": 48.73956600000383,
+              "checksum": 75202281,
+              "seed": 1193507,
+              "microsecondsPerOperation": 5415.50733333376
+            },
+            {
+              "milliseconds": 48.66270400000212,
+              "checksum": 75201408,
+              "seed": 1193604,
+              "microsecondsPerOperation": 5406.967111111347
+            },
+            {
+              "milliseconds": 47.96422900000471,
+              "checksum": 75200535,
+              "seed": 1193701,
+              "microsecondsPerOperation": 5329.3587777783005
+            },
+            {
+              "milliseconds": 49.00173099999665,
+              "checksum": 75201966,
+              "seed": 1193798,
+              "microsecondsPerOperation": 5444.636777777406
+            },
+            {
+              "milliseconds": 48.39596100000199,
+              "checksum": 75201093,
+              "seed": 1193895,
+              "microsecondsPerOperation": 5377.329000000221
+            },
+            {
+              "milliseconds": 48.464351999995415,
+              "checksum": 75202524,
+              "seed": 1193992,
+              "microsecondsPerOperation": 5384.927999999491
+            }
+          ],
+          "median": 5393.139444444387,
+          "min": 5293.370666667114,
+          "max": 5472.8957777778205
+        }
+      ]
+    },
+    {
+      "id": "host-bytes-64k",
+      "name": "Round trip + scan 64 KiB",
+      "operation": "one awaited copy callback carrying 64 KiB out and 64 KiB back, then sum every returned byte in guest JavaScript",
+      "entries": [
+        {
+          "driver": "node",
+          "count": 1015,
+          "samples": [
+            {
+              "milliseconds": 58.748601999999664,
+              "checksum": 4186225933,
+              "seed": 1193216,
+              "microsecondsPerOperation": 57.88039605911297
+            },
+            {
+              "milliseconds": 73.77889700000378,
+              "checksum": 4186127478,
+              "seed": 1193313,
+              "microsecondsPerOperation": 72.68856847291013
+            },
+            {
+              "milliseconds": 55.32515100000455,
+              "checksum": 4186029023,
+              "seed": 1193410,
+              "microsecondsPerOperation": 54.50753793103897
+            },
+            {
+              "milliseconds": 63.87944599999901,
+              "checksum": 4186190408,
+              "seed": 1193507,
+              "microsecondsPerOperation": 62.935414778324144
+            },
+            {
+              "milliseconds": 61.96261500000401,
+              "checksum": 4186091953,
+              "seed": 1193604,
+              "microsecondsPerOperation": 61.046911330053206
+            },
+            {
+              "milliseconds": 58.57902800000011,
+              "checksum": 4185993498,
+              "seed": 1193701,
+              "microsecondsPerOperation": 57.71332807881784
+            },
+            {
+              "milliseconds": 72.57695899999817,
+              "checksum": 4186154883,
+              "seed": 1193798,
+              "microsecondsPerOperation": 71.50439310344647
+            },
+            {
+              "milliseconds": 52.873804000002565,
+              "checksum": 4186056428,
+              "seed": 1193895,
+              "microsecondsPerOperation": 52.092417733992676
+            },
+            {
+              "milliseconds": 64.79390499999863,
+              "checksum": 4186217813,
+              "seed": 1193992,
+              "microsecondsPerOperation": 63.83635960590998
+            }
+          ],
+          "median": 61.046911330053206,
+          "min": 52.092417733992676,
+          "max": 72.68856847291013
+        },
+        {
+          "driver": "node-worker",
+          "count": 700,
+          "samples": [
+            {
+              "milliseconds": 53.32921200000419,
+              "checksum": 1554131498,
+              "seed": 1193216,
+              "microsecondsPerOperation": 76.18458857143456
+            },
+            {
+              "milliseconds": 52.525251999999455,
+              "checksum": 1554063598,
+              "seed": 1193313,
+              "microsecondsPerOperation": 75.03607428571351
+            },
+            {
+              "milliseconds": 57.11305100000027,
+              "checksum": 1553995698,
+              "seed": 1193410,
+              "microsecondsPerOperation": 81.59007285714324
+            },
+            {
+              "milliseconds": 57.771450000000186,
+              "checksum": 1554106998,
+              "seed": 1193507,
+              "microsecondsPerOperation": 82.53064285714312
+            },
+            {
+              "milliseconds": 53.442497999996704,
+              "checksum": 1554039098,
+              "seed": 1193604,
+              "microsecondsPerOperation": 76.34642571428101
+            },
+            {
+              "milliseconds": 56.04836699999578,
+              "checksum": 1553971198,
+              "seed": 1193701,
+              "microsecondsPerOperation": 80.06909571427968
+            },
+            {
+              "milliseconds": 53.982168000002275,
+              "checksum": 1554082498,
+              "seed": 1193798,
+              "microsecondsPerOperation": 77.11738285714611
+            },
+            {
+              "milliseconds": 54.293037000003096,
+              "checksum": 1554014598,
+              "seed": 1193895,
+              "microsecondsPerOperation": 77.56148142857585
+            },
+            {
+              "milliseconds": 52.08301900000515,
+              "checksum": 1554125898,
+              "seed": 1193992,
+              "microsecondsPerOperation": 74.40431285715022
+            }
+          ],
+          "median": 77.11738285714611,
+          "min": 74.40431285715022,
+          "max": 82.53064285714312
+        },
+        {
+          "driver": "quickjs",
+          "count": 16,
+          "samples": [
+            {
+              "milliseconds": 52.032330036,
+              "checksum": 133693560,
+              "seed": 1193216,
+              "microsecondsPerOperation": 3252.02062725
+            },
+            {
+              "milliseconds": 52.207220078,
+              "checksum": 133692008,
+              "seed": 1193313,
+              "microsecondsPerOperation": 3262.951254875
+            },
+            {
+              "milliseconds": 50.755218029,
+              "checksum": 133690456,
+              "seed": 1193410,
+              "microsecondsPerOperation": 3172.2011268124998
+            },
+            {
+              "milliseconds": 52.896561146,
+              "checksum": 133693000,
+              "seed": 1193507,
+              "microsecondsPerOperation": 3306.035071625
+            },
+            {
+              "milliseconds": 52.301260948,
+              "checksum": 133691448,
+              "seed": 1193604,
+              "microsecondsPerOperation": 3268.82880925
+            },
+            {
+              "milliseconds": 52.174797058,
+              "checksum": 133689896,
+              "seed": 1193701,
+              "microsecondsPerOperation": 3260.9248161250002
+            },
+            {
+              "milliseconds": 52.326141119,
+              "checksum": 133692440,
+              "seed": 1193798,
+              "microsecondsPerOperation": 3270.3838199375
+            },
+            {
+              "milliseconds": 52.75205493,
+              "checksum": 133690888,
+              "seed": 1193895,
+              "microsecondsPerOperation": 3297.003433125
+            },
+            {
+              "milliseconds": 52.687707901,
+              "checksum": 133693432,
+              "seed": 1193992,
+              "microsecondsPerOperation": 3292.9817438125
+            }
+          ],
+          "median": 3268.82880925,
+          "min": 3172.2011268124998,
+          "max": 3306.035071625
+        },
+        {
+          "driver": "jss-inline",
+          "count": 8,
+          "samples": [
+            {
+              "milliseconds": 47.61279099999956,
+              "checksum": 66846748,
+              "seed": 1193216,
+              "microsecondsPerOperation": 5951.598874999945
+            },
+            {
+              "milliseconds": 46.23621799999819,
+              "checksum": 66845972,
+              "seed": 1193313,
+              "microsecondsPerOperation": 5779.527249999774
+            },
+            {
+              "milliseconds": 45.46498500000598,
+              "checksum": 66845196,
+              "seed": 1193410,
+              "microsecondsPerOperation": 5683.123125000748
+            },
+            {
+              "milliseconds": 44.56422800000291,
+              "checksum": 66846468,
+              "seed": 1193507,
+              "microsecondsPerOperation": 5570.528500000364
+            },
+            {
+              "milliseconds": 45.629956999997376,
+              "checksum": 66845692,
+              "seed": 1193604,
+              "microsecondsPerOperation": 5703.744624999672
+            },
+            {
+              "milliseconds": 45.235799999994924,
+              "checksum": 66844916,
+              "seed": 1193701,
+              "microsecondsPerOperation": 5654.4749999993655
+            },
+            {
+              "milliseconds": 45.07353100000182,
+              "checksum": 66846188,
+              "seed": 1193798,
+              "microsecondsPerOperation": 5634.191375000228
+            },
+            {
+              "milliseconds": 45.158956999999646,
+              "checksum": 66845412,
+              "seed": 1193895,
+              "microsecondsPerOperation": 5644.869624999956
+            },
+            {
+              "milliseconds": 44.431846999999834,
+              "checksum": 66846684,
+              "seed": 1193992,
+              "microsecondsPerOperation": 5553.980874999979
+            }
+          ],
+          "median": 5654.4749999993655,
+          "min": 5553.980874999979,
+          "max": 5951.598874999945
+        },
+        {
+          "driver": "jss-worker",
+          "count": 8,
+          "samples": [
+            {
+              "milliseconds": 46.84257099999377,
+              "checksum": 66846748,
+              "seed": 1193216,
+              "microsecondsPerOperation": 5855.321374999221
+            },
+            {
+              "milliseconds": 46.438210999993316,
+              "checksum": 66845972,
+              "seed": 1193313,
+              "microsecondsPerOperation": 5804.776374999165
+            },
+            {
+              "milliseconds": 46.656607999997505,
+              "checksum": 66845196,
+              "seed": 1193410,
+              "microsecondsPerOperation": 5832.075999999688
+            },
+            {
+              "milliseconds": 46.58058799999708,
+              "checksum": 66846468,
+              "seed": 1193507,
+              "microsecondsPerOperation": 5822.573499999635
+            },
+            {
+              "milliseconds": 45.565247999998974,
+              "checksum": 66845692,
+              "seed": 1193604,
+              "microsecondsPerOperation": 5695.655999999872
+            },
+            {
+              "milliseconds": 45.816828000002715,
+              "checksum": 66844916,
+              "seed": 1193701,
+              "microsecondsPerOperation": 5727.103500000339
+            },
+            {
+              "milliseconds": 45.72935199999483,
+              "checksum": 66846188,
+              "seed": 1193798,
+              "microsecondsPerOperation": 5716.168999999354
+            },
+            {
+              "milliseconds": 45.65941400000156,
+              "checksum": 66845412,
+              "seed": 1193895,
+              "microsecondsPerOperation": 5707.426750000195
+            },
+            {
+              "milliseconds": 46.067637000000104,
+              "checksum": 66846684,
+              "seed": 1193992,
+              "microsecondsPerOperation": 5758.454625000013
+            }
+          ],
+          "median": 5758.454625000013,
+          "min": 5695.655999999872,
+          "max": 5855.321374999221
+        }
+      ]
+    }
+  ]
+}

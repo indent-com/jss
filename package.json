@@ -1,0 +1,62 @@
+{
+  "name": "@indent-com/jss",
+  "version": "0.1.0",
+  "description": "Promise-based QuickJS sandboxes and handles for Node.js and browsers",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/indent-com/jss.git"
+  },
+  "homepage": "https://github.com/indent-com/jss#readme",
+  "bugs": "https://github.com/indent-com/jss/issues",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/node.d.ts",
+      "node": "./dist/node.js",
+      "default": "./dist/browser.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
+    },
+    "./worker": "./dist/browser-worker.js",
+    "./quickjs.wasm": "./dist/engine/quickjs.wasm",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "docs/design.md"
+  ],
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "test": "node --test test/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "benchmark": "bin/benchmark",
+    "test:browser": "node test/browser.mjs"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.3",
+    "domexception": "4.0.0",
+    "event-target-shim": "6.0.2",
+    "fetch-blob": "3.2.0",
+    "formdata-polyfill": "4.0.10",
+    "playwright": "1.59.1",
+    "text-encoding": "0.7.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.0",
+    "web-streams-polyfill": "4.3.0",
+    "whatwg-url": "17.1.1",
+    "ws": "8.18.3"
+  }
+}

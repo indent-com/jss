@@ -1,0 +1,341 @@
+#!/usr/bin/env node
+import { createHash } from 'node:crypto';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { dirname, basename, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { gunzipSync } from 'node:zlib';
+import { spawnSync } from 'node:child_process';
+
+const NAME = '@indent-com/jss';
+const REPOSITORY = 'https://github.com/indent-com/jss';
+const REGISTRY = 'https://registry.npmjs.org/';
+const ENGINE_COMMIT = '1ab8676f4b6d6d669baeb5f21790fb9734636a20';
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][\da-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][\da-zA-Z-]*))*))?(?:\+([\da-zA-Z-]+(?:\.[\da-zA-Z-]+)*))?$/;
+
+function requireThat(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+function command(executable, args, { allowFailure = false, env = process.env, stdio = 'pipe' } = {}) {
+  const result = spawnSync(executable, args, {
+    cwd: ROOT, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, env, stdio,
+  });
+  if (result.error) throw new Error(`Cannot run ${executable}: ${result.error.message}`);
+  if (!allowFailure && result.status !== 0) {
+    // Never print the environment, particularly the OIDC request token.
+    throw new Error(`${executable} ${args[0]} failed (${result.status}): ${(result.stderr || result.stdout || '').trim()}`);
+  }
+  return result;
+}
+
+function json(text, label) {
+  try { return JSON.parse(text); }
+  catch { throw new Error(`${label} is not valid JSON`); }
+}
+
+function normalizeRepository(value) {
+  const url = typeof value === 'string' ? value : value?.url;
+  return typeof url === 'string' ? url.replace(/^git\+/, '').replace(/\.git$/, '') : '';
+}
+
+function tarText(buffer) {
+  const zero = buffer.indexOf(0);
+  return new TextDecoder('utf-8', { fatal: true }).decode(zero < 0 ? buffer : buffer.subarray(0, zero));
+}
+
+function tarNumber(buffer) {
+  const value = tarText(buffer).trim();
+  requireThat(/^[0-7]+$/.test(value), 'Unsupported tar numeric field');
+  const result = Number.parseInt(value, 8);
+  requireThat(Number.isSafeInteger(result) && result >= 0, 'Invalid tar numeric field');
+  return result;
+}
+
+function paxFields(buffer) {
+  const fields = {};
+  let offset = 0;
+  while (offset < buffer.length) {
+    const space = buffer.indexOf(32, offset);
+    requireThat(space > offset, 'Invalid PAX header');
+    const lengthText = buffer.subarray(offset, space).toString('ascii');
+    requireThat(/^[1-9]\d*$/.test(lengthText), 'Invalid PAX record length');
+    const length = Number(lengthText);
+    requireThat(Number.isSafeInteger(length) && length > space - offset + 2 && offset + length <= buffer.length,
+      'Invalid PAX record bounds');
+    requireThat(buffer[offset + length - 1] === 10, 'Invalid PAX record terminator');
+    const record = buffer.subarray(space + 1, offset + length - 1).toString('utf8');
+    const equals = record.indexOf('=');
+    requireThat(equals > 0, 'Invalid PAX record');
+    fields[record.slice(0, equals)] = record.slice(equals + 1);
+    offset += length;
+  }
+  requireThat(!Object.hasOwn(fields, 'linkpath') && !Object.hasOwn(fields, 'size'),
+    'PAX links and size overrides are not allowed');
+  return fields;
+}
+
+function allowedPath(path, directory) {
+  requireThat(path.startsWith('package/') && !/[\x00-\x1f\x7f\\]/.test(path), `Unsafe archive path: ${JSON.stringify(path)}`);
+  const relative = path.slice('package/'.length).replace(directory ? /\/$/ : /$^/, '');
+  requireThat(!relative.split('/').some(part => part === '..' || part === '.' || part === ''),
+    `Unsafe archive path: ${JSON.stringify(path)}`);
+  if (directory) {
+    requireThat(relative === 'dist' || relative.startsWith('dist/') || relative === 'docs',
+      `Unexpected package directory: ${relative}`);
+  } else {
+    requireThat(relative.startsWith('dist/') || ['package.json', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'docs/design.md'].includes(relative),
+      `Unexpected package file: ${relative}`);
+    if (relative.startsWith('dist/')) {
+      requireThat(/\.(?:js|mjs|cjs|ts|map|json|wasm)$/.test(relative), `Unexpected distribution file: ${relative}`);
+    }
+  }
+  return relative;
+}
+
+/** Inspect in memory; never extract an untrusted archive onto the filesystem. */
+export function inspectTarball(compressed) {
+  requireThat(compressed.length <= 64 * 1024 * 1024, 'Tarball exceeds 64 MiB');
+  const archive = gunzipSync(compressed, { maxOutputLength: 128 * 1024 * 1024 });
+  requireThat(archive.length % 512 === 0, 'Truncated tar archive');
+  const files = new Map();
+  const entries = new Set();
+  let localPax = {};
+  let terminated = false;
+  for (let offset = 0; offset + 512 <= archive.length;) {
+    const header = archive.subarray(offset, offset + 512);
+    if (header.every(byte => byte === 0)) {
+      requireThat(archive.subarray(offset).every(byte => byte === 0), 'Unexpected data after tar terminator');
+      terminated = true;
+      break;
+    }
+    let checksum = 0;
+    for (let index = 0; index < 512; index++) checksum += index >= 148 && index < 156 ? 32 : header[index];
+    requireThat(checksum === tarNumber(header.subarray(148, 156)), 'Tar checksum mismatch');
+    const size = tarNumber(header.subarray(124, 136));
+    const type = header[156];
+    const body = archive.subarray(offset + 512, offset + 512 + size);
+    requireThat(body.length === size, 'Truncated tar entry');
+    offset += 512 + Math.ceil(size / 512) * 512;
+    if (type === 120) { // Per-file POSIX extended header.
+      requireThat(Object.keys(localPax).length === 0, 'Repeated PAX header');
+      localPax = paxFields(body);
+      continue;
+    }
+    requireThat(type === 0 || type === 48 || type === 53, 'Archive may contain only regular files and directories (no links)');
+    const prefix = tarText(header.subarray(345, 500));
+    const name = tarText(header.subarray(0, 100));
+    const path = localPax.path ?? (prefix ? `${prefix}/${name}` : name);
+    localPax = {};
+    if (type === 53 && (path === 'package/' || path === 'package')) continue;
+    const relative = allowedPath(path, type === 53);
+    requireThat(!entries.has(relative), `Duplicate archive path: ${relative}`);
+    entries.add(relative);
+    if (type !== 53) files.set(relative, body);
+  }
+  requireThat(terminated && Object.keys(localPax).length === 0, 'Missing tar terminator or dangling PAX header');
+  requireThat(files.size > 0 && files.size <= 10_000, 'Invalid package file count');
+  return files;
+}
+
+function exportTargets(value) {
+  if (typeof value === 'string') return [value];
+  if (value === null) return [];
+  requireThat(value !== undefined && typeof value === 'object', 'Invalid package exports');
+  return Object.values(value).flatMap(exportTargets);
+}
+
+export function validateArtifact(artifactPath) {
+  requireThat(statSync(artifactPath).isFile(), 'Artifact must be a regular file');
+  const compressed = readFileSync(artifactPath);
+  const integrity = `sha512-${createHash('sha512').update(compressed).digest('base64')}`;
+  const metadata = json(readFileSync(resolve(dirname(artifactPath), 'release.json'), 'utf8'), 'release.json');
+  requireThat(metadata.schemaVersion === 1, 'Unsupported release metadata schema');
+  requireThat(metadata.name === NAME && metadata.repository === REPOSITORY, 'Release metadata package/repository mismatch');
+  requireThat(metadata.tarball === basename(artifactPath), 'Release metadata tarball name mismatch');
+  requireThat(metadata.integrity === integrity, 'Tarball SHA-512 does not match release.json');
+  requireThat(metadata.engine?.name === 'quickjs-ng' && metadata.engine?.version === '0.16.2' && metadata.engine?.commit === ENGINE_COMMIT,
+    'Unexpected QuickJS engine provenance');
+  requireThat(typeof metadata.toolchain?.node === 'string' && metadata.toolchain.node.length > 0 &&
+    typeof metadata.toolchain?.emscripten === 'string' && metadata.toolchain.emscripten.length > 0,
+  'Missing compiler/runtime versions in release metadata');
+  const files = inspectTarball(compressed);
+  const required = ['package.json', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'docs/design.md',
+    'dist/node.js', 'dist/browser.js', 'dist/node-worker.js', 'dist/browser-worker.js',
+    'dist/engine/quickjs.js', 'dist/engine/quickjs.wasm'];
+  for (const file of required) requireThat(files.get(file)?.length > 0, `Missing or empty packaged file: ${file}`);
+  const manifest = json(files.get('package.json').toString('utf8'), 'Packaged package.json');
+  requireThat(manifest.name === NAME, `Expected package name ${NAME}`);
+  requireThat(typeof manifest.version === 'string' && SEMVER.test(manifest.version), 'Package version must be strict semver');
+  requireThat(!manifest.version.includes('+'), 'npm release versions must not contain build metadata');
+  requireThat(manifest.version === metadata.version, 'Package and release metadata versions disagree');
+  requireThat(normalizeRepository(manifest.repository) === REPOSITORY, 'Package repository mismatch');
+  requireThat(manifest.type === 'module' && !manifest.private, 'Package must be public ESM');
+  requireThat(Object.keys(manifest.dependencies ?? {}).length === 0 && Object.keys(manifest.optionalDependencies ?? {}).length === 0,
+    'The published package must have no runtime npm dependencies');
+  requireThat(manifest.publishConfig?.access === 'public' && manifest.publishConfig?.registry === REGISTRY,
+    'Package publishConfig must select the public npm registry');
+  for (const [path, bytes] of files) {
+    if (path === 'package.json' || (path.startsWith('dist/') && !path.endsWith('.wasm'))) {
+      requireThat(!bytes.includes(Buffer.from('/nix/store/')), `Nonportable Nix store reference in ${path}`);
+    }
+  }
+  for (const name of ['preinstall', 'install', 'postinstall']) {
+    requireThat(!manifest.scripts?.[name], `Installation lifecycle scripts are not allowed: ${name}`);
+  }
+  requireThat(manifest.exports && !Array.isArray(manifest.exports) && typeof manifest.exports === 'object', 'Missing package exports');
+  for (const target of exportTargets(manifest.exports)) {
+    requireThat((target.startsWith('./dist/') || target === './package.json') && files.has(target.slice(2)), `Missing or invalid exported asset: ${target}`);
+  }
+  for (const target of [manifest.types, manifest.main].filter(value => value !== undefined)) {
+    requireThat(typeof target === 'string' && files.has(target.replace(/^\.\//, '')), `Missing package entry: ${target}`);
+  }
+  requireThat(exportTargets(manifest.exports['.']).includes('./dist/node.js') &&
+    exportTargets(manifest.exports['.']).includes('./dist/browser.js'), 'Root exports must contain both Node and browser adapters');
+  requireThat(exportTargets(manifest.exports).includes('./dist/browser-worker.js') &&
+    exportTargets(manifest.exports).includes('./dist/engine/quickjs.wasm'), 'Worker and WASM must have public exports');
+  requireThat(files.get('dist/engine/quickjs.wasm').subarray(0, 8).equals(Buffer.from([0, 97, 115, 109, 1, 0, 0, 0])),
+    'Invalid WebAssembly module header');
+  return { integrity, metadata, manifest, fileCount: files.size };
+}
+
+function atLeast(actual, expected) {
+  const version = actual.replace(/^v/, '').match(/^(\d+)\.(\d+)\.(\d+)(?:$|[-+])/);
+  if (!version) return false;
+  const numbers = version.slice(1).map(Number);
+  for (let index = 0; index < 3; index++) {
+    if (numbers[index] !== expected[index]) return numbers[index] > expected[index];
+  }
+  return true;
+}
+
+function chooseTag(version, requested) {
+  const prerelease = Boolean(SEMVER.exec(version)[4]);
+  const tag = requested ?? (prerelease ? 'next' : 'latest');
+  requireThat(/^[a-z][a-z0-9-]*$/.test(tag) && !/^v\d/.test(tag), 'Dist-tag must be a lowercase non-version label');
+  requireThat(!prerelease || tag !== 'latest', 'A prerelease may never use the latest dist-tag');
+  return tag;
+}
+
+function verifyReleaseContext(manifest, metadata) {
+  const env = process.env;
+  requireThat(env.GITHUB_ACTIONS === 'true', 'Real publishing requires GitHub Actions');
+  requireThat(env.GITHUB_REPOSITORY === 'indent-com/jss', 'Unexpected GitHub repository');
+  requireThat(env.GITHUB_EVENT_NAME === 'push' && env.GITHUB_REF_TYPE === 'tag', 'Publishing requires a pushed release tag');
+  const expectedTag = `v${manifest.version}`;
+  requireThat(env.GITHUB_REF_NAME === expectedTag && env.GITHUB_REF === `refs/tags/${expectedTag}`, `Tag must be ${expectedTag}`);
+  requireThat(env.RUNNER_ENVIRONMENT === 'github-hosted', 'OIDC publishing requires a GitHub-hosted runner');
+  requireThat(env.ACTIONS_ID_TOKEN_REQUEST_URL && env.ACTIONS_ID_TOKEN_REQUEST_TOKEN, 'Missing GitHub OIDC credentials; grant id-token: write to the publish job');
+  requireThat(atLeast(process.version, [22, 14, 0]), 'Publishing requires Node >=22.14.0');
+  const npmVersion = command('npm', ['--version']).stdout.trim();
+  requireThat(atLeast(npmVersion, [11, 5, 1]), 'Publishing requires npm >=11.5.1');
+  const head = command('git', ['rev-parse', 'HEAD']).stdout.trim();
+  requireThat(/^[a-f\d]{40}$/.test(env.GITHUB_SHA ?? '') && env.GITHUB_SHA === head, 'GITHUB_SHA must exactly match checked-out HEAD');
+  const tagCommit = command('git', ['rev-parse', `refs/tags/${expectedTag}^{commit}`]).stdout.trim();
+  requireThat(tagCommit === head, 'Release tag must point to checked-out HEAD');
+  requireThat(command('git', ['status', '--porcelain', '--untracked-files=no']).stdout.trim() === '', 'Tracked working tree must be clean');
+  command('git', ['ls-files', '--error-unmatch', 'package.json', 'bin/publish']);
+  const checkout = json(readFileSync(resolve(ROOT, 'package.json'), 'utf8'), 'Checkout package.json');
+  requireThat(checkout.name === manifest.name && checkout.version === manifest.version && normalizeRepository(checkout.repository) === REPOSITORY,
+    'Artifact package identity does not match the checkout');
+  requireThat(metadata.sourceRevision === head, 'Release metadata must identify the exact checked-out source revision');
+  return head;
+}
+
+function registryIntegrity(version, env) {
+  const result = command('npm', ['view', `${NAME}@${version}`, 'dist.integrity', '--json', '--registry', REGISTRY], { allowFailure: true, env });
+  if (result.status === 0) {
+    const integrity = json(result.stdout, 'Registry integrity response');
+    requireThat(typeof integrity === 'string' && integrity.startsWith('sha512-'), 'Existing version has no comparable SHA-512 integrity');
+    return integrity;
+  }
+  let response;
+  try { response = JSON.parse(result.stdout); } catch { /* Fail closed unless npm supplied a structured E404. */ }
+  if (response?.error?.code === 'E404') return null;
+  throw new Error(`Cannot establish whether ${NAME}@${version} exists; npm registry query failed (${result.status}). ${result.stderr.trim()}`);
+}
+
+function locateArtifact(explicit) {
+  if (explicit) return resolve(explicit);
+  process.stdout.write('Building npm artifact through Nix…\n');
+  const built = command('nix', ['build', '.#npm', '--no-update-lock-file', '--no-link', '--print-out-paths'], {
+    stdio: ['inherit', 'pipe', 'inherit'],
+  });
+  const outputs = built.stdout.trim().split(/\r?\n/).filter(Boolean);
+  requireThat(outputs.length === 1 && statSync(outputs[0]).isDirectory(), 'Nix must produce exactly one npm artifact directory');
+  const directory = outputs[0];
+  const choices = readdirSync(directory).filter(name => name.endsWith('.tgz'));
+  requireThat(choices.length === 1, 'Nix output must contain exactly one .tgz');
+  return resolve(directory, choices[0]);
+}
+
+export function main(args = process.argv.slice(2)) {
+  let artifact;
+  let requestedTag;
+  let dryRun = false;
+  for (let index = 0; index < args.length; index++) {
+    const flag = args[index];
+    if (flag === '--help') {
+      process.stdout.write('Usage: publish [--artifact PATH] [--dry-run] [--tag DIST_TAG]\nBuilds .#npm through Nix, validates the artifact and publishes using your npm authentication.\n--artifact skips the build; GitHub Actions uses OIDC and release-tag provenance.\n');
+      return;
+    }
+    if (flag === '--dry-run') { dryRun = true; continue; }
+    requireThat(flag === '--artifact' || flag === '--tag', `Unknown option: ${flag}`);
+    requireThat(index + 1 < args.length && !args[index + 1].startsWith('--'), `Missing value for ${flag}`);
+    const value = args[++index];
+    if (flag === '--artifact') {
+      requireThat(artifact === undefined, 'Repeated --artifact');
+      artifact = value;
+    } else {
+      requireThat(requestedTag === undefined, 'Repeated --tag');
+      requestedTag = value;
+    }
+  }
+  const artifactPath = locateArtifact(artifact);
+  const { manifest, metadata, integrity, fileCount } = validateArtifact(artifactPath);
+  const tag = chooseTag(manifest.version, requestedTag);
+  const ci = process.env.GITHUB_ACTIONS === 'true';
+  const head = dryRun || !ci ? null : verifyReleaseContext(manifest, metadata);
+  process.stdout.write(`Validated ${NAME}@${manifest.version}: ${fileCount} files, ${integrity}\n`);
+  process.stdout.write(`Artifact: ${artifactPath}\nDist-tag: ${tag}\n`);
+  // Local runs use normal npm authentication; Actions uses short-lived OIDC.
+  const npmEnv = { ...process.env, npm_config_registry: REGISTRY };
+  if (ci) {
+    delete npmEnv.NODE_AUTH_TOKEN;
+    delete npmEnv.NPM_TOKEN;
+  }
+  const publishArgs = ['publish', artifactPath, '--ignore-scripts', '--access', 'public', '--tag', tag, '--registry', REGISTRY];
+  if (dryRun) {
+    process.stdout.write('Dry run: artifact validation only; Git tag/commit and OIDC release provenance are not verified. No registry write.\n');
+    const result = command('npm', [...publishArgs, '--dry-run', '--offline'], { env: npmEnv });
+    process.stdout.write(result.stdout);
+    process.stderr.write(result.stderr);
+    return;
+  }
+  if (head) process.stdout.write(`Release commit: ${head}\n`);
+  const previous = registryIntegrity(manifest.version, npmEnv);
+  if (previous !== null) {
+    requireThat(previous === integrity, 'Published version already exists with DIFFERENT integrity; refusing to skip or overwrite');
+    process.stdout.write('The identical artifact is already published; nothing to do.\n');
+    return;
+  }
+  if (ci) publishArgs.push('--provenance');
+  // Keep stdin and output connected so npm can complete interactive login/2FA.
+  const result = command('npm', publishArgs, { allowFailure: true, env: npmEnv, stdio: 'inherit' });
+  if (result.status !== 0) {
+    // A concurrent publisher or a lost response can make a failed request ambiguous.
+    const current = registryIntegrity(manifest.version, npmEnv);
+    requireThat(current === integrity, `npm publish failed (${result.status}); the registry does not contain this artifact`);
+    process.stdout.write('Registry confirms the identical artifact was published.\n');
+    return;
+  }
+  process.stdout.write(`Published ${NAME}@${manifest.version}${ci ? ' with provenance' : ''}.\n`);
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try { main(); }
+  catch (error) {
+    process.stderr.write(`publish: ${error.message}\n`);
+    process.exitCode = 1;
+  }
+}
