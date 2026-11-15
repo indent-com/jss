@@ -13,6 +13,7 @@ export interface Command { op: string; args: any[]; }
 export interface EngineOptions {
   memoryLimitBytes: number;
   stackLimitBytes: number;
+  intl: boolean;
   timeoutMs: number;
   wasmBinary?: Uint8Array;
   wasmUrl?: string;

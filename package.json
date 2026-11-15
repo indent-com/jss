@@ -1,6 +1,6 @@
 {
   "name": "@indent-com/jss",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Promise-based QuickJS sandboxes and handles for Node.js and browsers",
   "type": "module",
   "license": "MIT",

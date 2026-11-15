@@ -20,6 +20,8 @@ export interface SandboxOptions {
   execution?: 'worker' | 'inline';
   memoryLimitBytes?: number;
   stackLimitBytes?: number;
+  /** Back the guest's Intl and toLocale* methods with the host's, defaulting to en-US and UTC. */
+  intl?: boolean;
   timeoutMs?: number;
   startupTimeoutMs?: number;
   maxPendingOperations?: number;
@@ -71,6 +73,7 @@ export class Sandbox {
     const engineOptions: EngineOptions = {
       memoryLimitBytes: positive(options.memoryLimitBytes, 64 * 1024 * 1024, 'memoryLimitBytes', 192 * 1024 * 1024),
       stackLimitBytes: positive(options.stackLimitBytes, 512 * 1024, 'stackLimitBytes', 1024 * 1024),
+      intl: options.intl === true,
       timeoutMs: sandbox.#timeout,
       wasmUrl: options.wasmUrl === undefined ? undefined : adapter.normalizeUrl(options.wasmUrl),
     };

@@ -113,6 +113,44 @@ EM_JS(int, jss_module_url, (const char *base_ptr, const char *name_ptr, char *ou
     } catch { return -1; }
 });
 
+/* The intl option's only host entry: one JSON request in, one JSON reply out, on
+ * this thread. Module.jssIntl (src/intl.ts) accepts a fixed set of Intl operations. */
+EM_JS_DEPS(jss_intl_deps, "$UTF8ToString,$stringToNewUTF8");
+EM_JS(char *, jss_intl, (const char *request, size_t length), {
+    return stringToNewUTF8(Module["jssIntl"](UTF8ToString(request, length)));
+});
+static JSValue intl_call(JSContext *ctx, JSValueConst self, int argc, JSValueConst *argv) {
+    (void)self;
+    if (argc != 1 || !JS_IsString(argv[0])) return JS_ThrowTypeError(ctx, "Invalid Intl request");
+    size_t length = 0;
+    const char *request = JS_ToCStringLen(ctx, &length, argv[0]);
+    if (!request) return JS_EXCEPTION;
+    if (length > MAX_SOURCE) {
+        JS_FreeCString(ctx, request);
+        return JS_ThrowRangeError(ctx, "Intl request exceeds 16 MiB");
+    }
+    char *reply = jss_intl(request, length);
+    JS_FreeCString(ctx, request);
+    if (!reply) return JS_ThrowOutOfMemory(ctx);
+    size_t size = strlen(reply);
+    JSValue result = size > MAX_SOURCE ? JS_ThrowRangeError(ctx, "Intl reply exceeds 16 MiB") : JS_NewStringLen(ctx, reply, size);
+    free(reply);
+    return result;
+}
+static int install_intl(void) {
+    static const char shim[] =
+#include "intl.inc"
+    ;
+    JSValue factory = JS_Eval(context, shim, sizeof(shim) - 1, "<jss-intl>", JS_EVAL_TYPE_GLOBAL);
+    if (JS_IsException(factory)) return 0;
+    JSValue fn = JS_NewCFunction(context, intl_call, "intl", 1);
+    JSValue result = JS_IsException(fn) ? JS_EXCEPTION : JS_Call(context, factory, JS_UNDEFINED, 1, &fn);
+    JS_FreeValue(context, fn); JS_FreeValue(context, factory);
+    if (JS_IsException(result)) return 0;
+    JS_FreeValue(context, result);
+    return 1;
+}
+
 static int interrupt(JSRuntime *rt, void *opaque) {
     (void)rt; (void)opaque;
     if (deadline > 0 && jss_clock() >= deadline) { timed_out = 1; return 1; }
@@ -579,7 +617,7 @@ done:
     return result;
 }
 
-EMSCRIPTEN_KEEPALIVE int jss_create(uint32_t memory, uint32_t stack) {
+EMSCRIPTEN_KEEPALIVE int jss_create(uint32_t memory, uint32_t stack, int intl) {
     if (runtime) return 0;
     memset(handles, 0, sizeof(handles)); memset(callbacks, 0, sizeof(callbacks));
     memset(rejections, 0, sizeof(rejections));
@@ -607,9 +645,9 @@ EMSCRIPTEN_KEEPALIVE int jss_create(uint32_t memory, uint32_t stack) {
         for (int i = 0; i < 3; i++) JS_FreeValue(context, functions[i]);
         JS_FreeValue(context, factory);
     }
-    if (JS_IsException(helpers)) {
+    if (JS_IsException(helpers) || (intl && !install_intl())) {
         JSValue error = JS_GetException(context);
-        JS_FreeValue(context, error);
+        JS_FreeValue(context, error); JS_FreeValue(context, helpers);
         JS_FreeContext(context); JS_FreeRuntime(runtime); context = NULL; runtime = NULL;
         return 0;
     }

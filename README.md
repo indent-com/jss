@@ -181,6 +181,22 @@ isolation for hostile tenants or undo host callback side effects. Static imports
 dynamic `import()` and top-level await use explicitly registered module sources;
 the core never reads files or fetches modules. Raw bytecode import is not exposed.
 
+## Intl
+
+QuickJS-NG has no `Intl`, and its `toLocaleString` methods ignore their locale and
+options. `intl: true` installs a guest `Intl` and replaces the `Date`, `Number`,
+`BigInt`, `String` and `Array` locale methods with ones backed by the `Intl` of
+the thread that runs the engine: the worker in worker mode, the caller in inline
+mode. Each call crosses synchronously as copied JSON and reaches only a fixed set
+of `Intl` operations. A missing locale means `en-US` and a missing time zone means
+`UTC`, so output never depends on the host's settings.
+
+```ts
+await withSandbox({ intl: true }, (sandbox) =>
+  sandbox.evaluate(`new Date(0).toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })`));
+// '1/1/1970, 9:00:00 AM'
+```
+
 ## Browsers and assets
 
 The package root selects the Node adapter in Node and a browser adapter for
