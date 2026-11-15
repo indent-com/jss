@@ -12,10 +12,12 @@ export JSS_BUILD_DIR="$jss_build_stage"
 mkdir -p "$jss_build_stage/engine"
 node --input-type=module -e '
   import { readFileSync, writeFileSync } from "node:fs";
-  const source = readFileSync("bridge/codec.js", "utf8");
-  if (/[^\x00-\x7f]/.test(source)) throw new Error("Bridge codec must remain ASCII for C embedding");
-  const text = source.split("\n").map(line => JSON.stringify(line + "\n")).join("\n") + "\n";
-  writeFileSync("bridge/codec.inc", text);
+  for (const name of ["codec", "intl"]) {
+    const source = readFileSync(`bridge/${name}.js`, "utf8");
+    if (/[^\x00-\x7f]/.test(source)) throw new Error(`bridge/${name}.js must remain ASCII for C embedding`);
+    const text = source.split("\n").map(line => JSON.stringify(line + "\n")).join("\n") + "\n";
+    writeFileSync(`bridge/${name}.inc`, text);
+  }
 '
 export EM_CACHE=${EM_CACHE:-"$(pwd)/.cache/emscripten"}
 mkdir -p "$EM_CACHE"

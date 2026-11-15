@@ -1,11 +1,13 @@
 import type { Command, EngineHooks, EngineOptions, Input, WireError, WireValue } from './protocol.js';
 import { failure, fromWire, toWire } from './errors.js';
+import { createIntlHost } from './intl.js';
 
 interface Module {
   HEAPU8: Uint8Array;
   _malloc(bytes: number): number;
   _free(pointer: number): void;
-  _jss_create(memory: number, stack: number): number;
+  _jss_create(memory: number, stack: number, intl: number): number;
+  jssIntl?: (request: string) => string;
   _jss_command(pointer: number, length: number, deadline: number, table: number, count: number): number;
   _jss_jobs(count: number, deadline: number): number;
   _jss_events(checkpoint: number): number;
@@ -76,7 +78,8 @@ export class Engine {
       printErr: () => {},
       onAbort: (reason: unknown) => { throw failure('ERR_FATAL', String(reason), 'EngineError'); },
     }) as Module;
-    if (!module._jss_create(options.memoryLimitBytes, options.stackLimitBytes)) {
+    if (options.intl) module.jssIntl = createIntlHost();
+    if (!module._jss_create(options.memoryLimitBytes, options.stackLimitBytes, options.intl ? 1 : 0)) {
       module._jss_dispose();
       throw failure('ERR_INITIALIZATION', 'Could not initialize the QuickJS runtime within its memory limit', 'InitializationError');
     }

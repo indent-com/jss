@@ -199,6 +199,7 @@ test('a failed compiler cannot replace a working loader/WASM pair', async t => {
   await mkdir(join(root, 'fake-bin'));
   await cp(new URL('../scripts/build.sh', import.meta.url), join(root, 'scripts/build.sh'));
   await writeFile(join(root, 'bridge/codec.js'), 'void 0;');
+  await writeFile(join(root, 'bridge/intl.js'), 'void 0;');
   await writeFile(join(root, 'dist/engine/quickjs.js'), 'working loader');
   await writeFile(join(root, 'dist/engine/quickjs.wasm'), 'working wasm');
   const emcc = join(root, 'fake-bin/emcc');
