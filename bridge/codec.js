@@ -34,7 +34,7 @@
   for (let i = 0; i < constructorPairs.length; i++) {
     ctors[constructorPairs[i][0]] = constructorPairs[i][1];
   }
-  const MAX_BYTES = 16777216, MAX_NODES = 100000, MAX_DEPTH = 100;
+  const MAX_BYTES = 16777216, MAX_NODES = 1048576, MAX_DEPTH = 100;
   function define(object, name, desc) {
     return rawDefine(object, name, setProto(desc, null));
   }

@@ -96,6 +96,15 @@ for (const execution of ['inline', 'worker']) {
     });
   });
 
+  check('copies large record lists returned by host callbacks', async () => {
+    await scoped(async (sandbox) => {
+      const fields = Object.fromEntries(Array.from({ length: 9 }, (_, index) => [`f${index}`, index]));
+      const records = Array.from({ length: 8000 }, (_, id) => ({ id: `rec${id}`, createdTime: '2026-11-16T00:00:00.000Z', fields: { ...fields } }));
+      await sandbox.expose('records', () => records);
+      assert.equal(await sandbox.evaluate('(await records()).length'), 8000);
+    });
+  });
+
   check('guest errors retain name, message and guest filename', async () => {
     await scoped(async (sandbox) => {
       await assert.rejects(sandbox.evaluate('throw new TypeError("guest failure")', { filename: 'guest-example.js' }), (error) => {
