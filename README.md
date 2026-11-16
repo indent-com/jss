@@ -136,7 +136,7 @@ worker transfers never detach caller buffers. Shared memory is excluded.
 
 Copying rejects functions, symbols, accessors, promises, class instances and
 cycles. Use handles for those values. Repeated acyclic references become separate
-copies. Copy limits are 16 MiB, 100 levels of nesting and 100,000 nodes or array
+copies. Copy limits are 16 MiB, 100 levels of nesting and 1,048,576 nodes or array
 elements.
 
 Guest failures reject with `SandboxError`, carrying `code`, `name`, `message`

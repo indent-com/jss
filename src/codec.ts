@@ -2,7 +2,8 @@ import type { WireValue } from './protocol.js';
 import { failure } from './errors.js';
 
 const MAX_BYTES = 16 * 1024 * 1024;
-const MAX_NODES = 100_000;
+// Matches MAX_BYTES at 16 bytes per node, so size rather than node count limits typical values.
+const MAX_NODES = MAX_BYTES / 16;
 const MAX_DEPTH = 100;
 const own = Object.prototype.hasOwnProperty;
 const bad = (message: string): never => { throw failure('ERR_CLONE', message, 'DataCloneError'); };
@@ -54,7 +55,8 @@ export function encode(value: unknown): WireValue {
   const ancestors = new Set<object>();
   let nodes = 0, bytes = 0;
   function visit(value: any, depth: number): WireValue {
-    if (++nodes > MAX_NODES || depth > MAX_DEPTH) bad('Value exceeds the copy depth or node limit');
+    if (depth > MAX_DEPTH) bad('Value exceeds the 100-level copy depth limit');
+    if (++nodes > MAX_NODES) bad('Value exceeds the copy node limit');
     const size = typeof value === 'string' ? value.length * 2 : 16;
     if ((bytes += size) > MAX_BYTES) bad('Value exceeds the 16 MiB copy limit');
     if (value === undefined) return ['undefined'];
