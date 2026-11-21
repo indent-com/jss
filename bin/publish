@@ -221,9 +221,9 @@ function verifyReleaseContext(manifest, metadata) {
   const env = process.env;
   requireThat(env.GITHUB_ACTIONS === 'true', 'Real publishing requires GitHub Actions');
   requireThat(env.GITHUB_REPOSITORY === 'indent-com/jss', 'Unexpected GitHub repository');
-  requireThat(env.GITHUB_EVENT_NAME === 'push' && env.GITHUB_REF_TYPE === 'tag', 'Publishing requires a pushed release tag');
+  requireThat(env.GITHUB_EVENT_NAME === 'workflow_dispatch' && env.GITHUB_REF === 'refs/heads/main', 'Publishing requires a workflow_dispatch run on main');
   const expectedTag = `v${manifest.version}`;
-  requireThat(env.GITHUB_REF_NAME === expectedTag && env.GITHUB_REF === `refs/tags/${expectedTag}`, `Tag must be ${expectedTag}`);
+  requireThat(command('git', ['ls-remote', '--tags', 'origin', `refs/tags/${expectedTag}`]).stdout.trim() === '', `${expectedTag} is already tagged`);
   requireThat(env.RUNNER_ENVIRONMENT === 'github-hosted', 'OIDC publishing requires a GitHub-hosted runner');
   requireThat(env.ACTIONS_ID_TOKEN_REQUEST_URL && env.ACTIONS_ID_TOKEN_REQUEST_TOKEN, 'Missing GitHub OIDC credentials; grant id-token: write to the publish job');
   requireThat(atLeast(process.version, [22, 14, 0]), 'Publishing requires Node >=22.14.0');
@@ -231,8 +231,6 @@ function verifyReleaseContext(manifest, metadata) {
   requireThat(atLeast(npmVersion, [11, 5, 1]), 'Publishing requires npm >=11.5.1');
   const head = command('git', ['rev-parse', 'HEAD']).stdout.trim();
   requireThat(/^[a-f\d]{40}$/.test(env.GITHUB_SHA ?? '') && env.GITHUB_SHA === head, 'GITHUB_SHA must exactly match checked-out HEAD');
-  const tagCommit = command('git', ['rev-parse', `refs/tags/${expectedTag}^{commit}`]).stdout.trim();
-  requireThat(tagCommit === head, 'Release tag must point to checked-out HEAD');
   requireThat(command('git', ['status', '--porcelain', '--untracked-files=no']).stdout.trim() === '', 'Tracked working tree must be clean');
   command('git', ['ls-files', '--error-unmatch', 'package.json', 'bin/publish']);
   const checkout = json(readFileSync(resolve(ROOT, 'package.json'), 'utf8'), 'Checkout package.json');
@@ -276,7 +274,7 @@ export function main(args = process.argv.slice(2)) {
   for (let index = 0; index < args.length; index++) {
     const flag = args[index];
     if (flag === '--help') {
-      process.stdout.write('Usage: publish [--artifact PATH] [--dry-run] [--tag DIST_TAG]\nBuilds .#npm through Nix, validates the artifact and publishes using your npm authentication.\n--artifact skips the build; GitHub Actions uses OIDC and release-tag provenance.\n');
+      process.stdout.write('Usage: publish [--artifact PATH] [--dry-run] [--tag DIST_TAG]\nBuilds .#npm through Nix, validates the artifact and publishes using your npm authentication.\n--artifact skips the build; GitHub Actions publishes from a workflow_dispatch on main with OIDC provenance.\n');
       return;
     }
     if (flag === '--dry-run') { dryRun = true; continue; }

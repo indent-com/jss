@@ -97,14 +97,14 @@ test('publisher rejects store references and mismatched engine provenance', t =>
   assert.throws(() => validateArtifact(engine), /engine provenance/);
 });
 
-test('GitHub Actions publication still requires a release tag before registry access', t => {
+test('GitHub Actions publication requires a dispatch on main before registry access', t => {
   const artifact = fixture(t);
   const result = spawnSync(publisher, ['--artifact', artifact], {
     env: { ...process.env, GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: 'indent-com/jss',
       GITHUB_EVENT_NAME: 'push', GITHUB_REF_TYPE: 'branch' }, encoding: 'utf8', timeout: 5_000,
   });
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /Publishing requires a pushed release tag/);
+  assert.match(result.stderr, /Publishing requires a workflow_dispatch run on main/);
 });
 
 function simulatedPublisher(t, { metadata, manifest = packageManifest } = {}) {
@@ -207,10 +207,9 @@ test('local publishing retains registry integrity checks for existing versions',
 test('CI publishes the supplied artifact with OIDC provenance and no rebuild', t => {
   const revision = 'a'.repeat(40);
   const fixture = simulatedPublisher(t, { metadata: { sourceRevision: revision } });
-  const tag = `v${packageManifest.version}`;
   const result = fixture.run(['--artifact', fixture.artifact], {
-    GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: 'indent-com/jss', GITHUB_EVENT_NAME: 'push',
-    GITHUB_REF_TYPE: 'tag', GITHUB_REF_NAME: tag, GITHUB_REF: `refs/tags/${tag}`, GITHUB_SHA: revision,
+    GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: 'indent-com/jss', GITHUB_EVENT_NAME: 'workflow_dispatch',
+    GITHUB_REF_TYPE: 'branch', GITHUB_REF_NAME: 'main', GITHUB_REF: 'refs/heads/main', GITHUB_SHA: revision,
     RUNNER_ENVIRONMENT: 'github-hosted', ACTIONS_ID_TOKEN_REQUEST_URL: 'https://example.invalid/oidc',
     ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'fixture-oidc-token',
   });
