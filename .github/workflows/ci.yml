@@ -3,8 +3,8 @@ name: Build, test and publish
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
+  # Dispatch from main to publish the version in package.json; the job tags the commit afterwards.
   workflow_dispatch:
 
 permissions:
@@ -29,14 +29,13 @@ jobs:
           if-no-files-found: error
 
   publish:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-24.04
-    # npm's trusted publisher only accepts this environment, which only deploys from v* tags; a tag
-    # ruleset limits who can create them.
+    # npm's trusted publisher only accepts this environment, which only deploys from main.
     environment: release
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -52,3 +51,8 @@ jobs:
           name: npm-package
           path: artifacts
       - run: bin/publish --artifact artifacts/*.tgz
+      - name: Tag the published commit
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          git tag "v$version" "$GITHUB_SHA"
+          git push origin "v$version"
