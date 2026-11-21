@@ -32,6 +32,9 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-24.04
+    # npm's trusted publisher only accepts this environment, which only deploys from v* tags; a tag
+    # ruleset limits who can create them.
+    environment: release
     permissions:
       contents: read
       id-token: write
