@@ -38,11 +38,9 @@ const snapshot = {
   workloadsSHA256: sha256(source),
   bindingsSHA256: sha256(await Promise.all(['engine', 'core', 'codec', 'transport'].map(async name => `${name}\n${await readFile(`dist/${name}.js`, 'utf8')}`)).then(parts => parts.join('\n'))),
 };
-// A path flake includes newly added files without requiring changes to Git's index.
-const nativeOutput = execFileSync('nix', ['build', `path:${root}#benchmark-native`, '--no-link', '--print-out-paths', '--no-update-lock-file'], {
+const nativeBinary = execFileSync('bash', ['scripts/build-benchmark-native.sh'], {
   encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'],
 }).trim();
-const nativeBinary = `${nativeOutput}/bin/jss-benchmark-native`;
 snapshot.nativeBinarySHA256 = sha256(await readFile(nativeBinary));
 
 const results = [];
@@ -220,22 +218,23 @@ so these numbers cannot isolate the TypeScript binding's cost from WASM itself.
 - Load average (1/5/15 min), before → after: ${env.loadStart.map(number).join('/')} → ${env.loadEnd.map(number).join('/')}.
 - Node.js ${env.node}; V8 ${env.v8}.
 - QuickJS-NG ${env.wasmBuild.version}, commit \`${env.wasmBuild.commit}\`, for both native and WASM.
-- Native compiler: ${env.native.compiler}; \`-O3 -DNDEBUG -funsigned-char\`, Nix stdenv defaults, no LTO or \`-march=native\`.
+- Native compiler: ${env.native.compiler}; \`-O3 -DNDEBUG -funsigned-char\`, system C compiler defaults, no LTO or \`-march=native\`.
 - WASM: ${env.wasmBuild.emscripten}; shipped size-oriented \`-Oz\`, no LTO. Optimization settings intentionally represent the shipped WASM versus an optimized native build.
 - WASM SHA-256: \`${env.wasmSHA256}\`.
 - Compiled binding JavaScript SHA-256: \`${env.bindingsSHA256}\`.
 
 ## Reproduce
 
-From the checkout with direnv enabled:
+From the checkout with \`mise\` installed:
 
 \`\`\`sh
-npm ci --ignore-scripts
-npm run build
-benchmark
+mise trust && mise install
+mise exec -- npm ci --ignore-scripts
+mise exec -- npm run build
+mise exec -- bin/benchmark
 \`\`\`
 
-The benchmark command builds the native harness through \`flake.nix\` and writes
+The benchmark command builds the native harness through \`scripts/build-benchmark-native.sh\` and writes
 this document plus [raw samples and metadata](benchmarks/results.json). It is
 manual, outside CI correctness checks, and adds no npm runtime dependency.
 On Linux, a caller can use \`taskset -c CPU_LIST benchmark\` to select CPUs;

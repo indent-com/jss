@@ -2,7 +2,7 @@
 
 Written before implementation, 2026-09-18. Confirmed requirements: TypeScript
 for Node.js and browsers using WebAssembly; high-level helpers and a full handle
-API; vendored quickjs-ng; builds through `flake.nix`; npm publishing through
+API; vendored quickjs-ng; pinned toolchain through `mise.toml`; npm publishing through
 `bin/publish` invoked by CI; off-thread execution and promises; time, memory and
 stack limits for untrusted guest code. The author asked to continue implementation
 after this document. The confirmed GitHub repository is `indent-com/jss`.
@@ -285,31 +285,35 @@ GitHub's API on 2026-09-18. Preserve MIT license, copyright and source layout.
 Record URL/tag/commit/archive SHA-256, exclusions and patches in UPSTREAM.md.
 Keep our bridge outside upstream. No submodule or build/install-time fetch.
 
-Commit flake.nix and flake.lock. Expose build, npm tarball, dev shell and checks.
-Pin Emscripten/Node/TypeScript/testing tools. Use build-local writable EM_CACHE;
-no emsdk, optional-port or browser downloads in Nix build phases. Compile core
+Commit `mise.toml` and `mise.lock` (covering `macos-arm64`, `linux-x64`, and
+`linux-arm64`). Pin Emscripten, Node, and `jq` via `mise`, and TypeScript/testing
+tools via `package-lock.json`. Use a build-local writable `EM_CACHE`
+(`.cache/emscripten`) and `scripts/emscripten-config.py` so `emcc` uses its
+bundled LLVM/Binaryen without putting Emscripten's `clang` on PATH. Compile core
 and bridge excluding CLI/libc capabilities. Set explicit WASM memory/stack caps,
-minimal exports/imports and no host dynamic evaluation. Test without user caches.
+minimal exports/imports and no host dynamic evaluation.
 Compile with `-Oz` to prioritize download size. Measurements favored it over LTO
 for this engine. Retain the default allocator, JavaScript features and stack
 checks; export only the runtime helpers used by the adapter. Size optimization
 can trade execution speed for smaller code; see [BENCHMARKS.md](../BENCHMARKS.md)
 for measurements of the shipped build against native QuickJS and Node.js.
-Use direnv to load the flake's development shell and add `bin/` to PATH. Keep only
-maintainer commands in `bin/`; build/pack/vendor helpers live in `scripts/` and
-test runners in `test/`. `bin/publish` contains its implementation in one executable
-using Node's built-in modules, with no launcher or sibling implementation file.
+Use `mise` to load the pinned toolchain and add `node_modules/.bin` and `bin/`
+to PATH. Keep only maintainer commands in `bin/`; build/pack/vendor helpers live
+in `scripts/` and test runners in `test/`. `bin/publish` contains its
+implementation in one executable using Node's built-in modules, with no launcher
+or sibling implementation file.
 
 Use browser-safe generated glue; Node loads bytes in its own adapter. If two
 glue variants prove necessary, keep one engine ABI and test both; do not patch
 generated code with fragile replacements. Produce ESM, declarations and WASM.
 
 ```
-direnv allow
-nix build
-nix flake check
-publish --dry-run
-publish
+mise trust && mise install
+mise exec -- npm ci --ignore-scripts
+mise exec -- npm run build
+mise exec -- bin/tests
+mise exec -- bin/publish --dry-run
+mise exec -- bin/publish
 ```
 
 Locks establish reproducible inputs. Byte-identical builds require verification,
@@ -327,17 +331,18 @@ Document Worker/WASM CSP needs, with no automatic CDN dependency.
 ## CI and release
 
 GitHub Actions builds one portable tarball and runs each suite once in a single
-Linux job through `nix flake check`. Run the runtime suite against the installed
+Linux job through `mise exec -- bin/tests`. Run the runtime suite against the installed
 tarball on Node 24, plus distinct publisher, package, consumer-type and Chromium
 checks. Do not repeat suites across OS, architecture, libc or Node-version matrices.
 Test direct ESM and a production Vite consumer under a nested base path, overrides
 and missing assets, both execution modes, no cross-origin isolation, and parent
 responsiveness. Firefox and WebKit remain available for optional local testing.
 
-Locally, plain `publish` builds `.#npm` through Nix, validates the artifact and
-publishes using the caller's npm authentication, with terminal input available
-for npm authentication and 2FA. Always select the newly resolved Nix output;
-do not reuse an arbitrary `result` link. `--artifact PATH` skips the build.
+Locally, plain `bin/publish` runs `npm run build` and `scripts/pack.mjs` into a
+fresh temporary directory, validates the artifact and publishes using the
+caller's npm authentication, with terminal input available for npm
+authentication and 2FA. Always select the newly packed output; do not reuse an
+arbitrary `artifacts` or `result` link. `--artifact PATH` skips the build.
 
 A vX.Y.Z tag must match package.json for GitHub Actions. After all checks pass,
 CI invokes bin/publish on the tested tarball with `--artifact`. Validate
@@ -356,7 +361,7 @@ Implement/test the release mechanism and report external prerequisites honestly.
 
 ## Implementation sequence
 
-1. Vendor/pin source; build WASM C bridge through Nix. Prove evaluation, cleanup,
+1. Vendor/pin source; build WASM C bridge with Emscripten pinned via `mise`. Prove evaluation, cleanup,
    interrupts and stack limits early.
 2. Implement handle ownership, reflection/calls, values, promise observation,
    callback capabilities and jobs.
