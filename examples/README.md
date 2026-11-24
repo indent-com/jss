@@ -1,14 +1,14 @@
 # Examples
 
-The examples use native `await using` and run on Node 24+ (the pinned direnv
+The examples use native `await using` and run on Node 24+ (the pinned `mise`
 toolchain). Sandboxes and owned handles are released at scope exit:
 
 ```sh
-direnv allow
-npm ci --ignore-scripts
-npm run build
-node examples/fibonacci.mjs 100
-node examples/capabilities.mjs
+mise trust && mise install
+mise exec -- npm ci --ignore-scripts
+mise exec -- npm run build
+mise exec -- node examples/fibonacci.mjs 100
+mise exec -- node examples/capabilities.mjs
 ```
 
 `fibonacci.mjs` computes an exact `BigInt` result in an off-thread QuickJS realm.

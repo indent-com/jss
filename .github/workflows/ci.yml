@@ -18,14 +18,46 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
-      - run: bin/tests
-      - run: nix build .#npm --no-update-lock-file --out-link result-npm --print-build-logs
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v5
+        with:
+          version: "2026.11.8"
+          cache: true
+          cache_save: ${{ github.event_name != 'pull_request' }}
+          install_args: --locked
+      - name: Install npm dependencies
+        run: mise exec -- npm ci --ignore-scripts
+      - name: Resolve Playwright version
+        id: playwright-version
+        run: echo "version=$(mise exec -- node -p 'require("./node_modules/playwright/package.json").version')" >> "$GITHUB_OUTPUT"
+      - name: Restore Playwright Chromium cache
+        id: playwright-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright-version.outputs.version }}
+      - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: mise exec -- npx playwright install chromium
+      - name: Install Playwright Chromium system dependencies
+        run: mise exec -- npx playwright install-deps chromium
+      - name: Save Playwright Chromium cache
+        if: github.event_name != 'pull_request' && steps.playwright-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.playwright-cache.outputs.cache-primary-key }}
+      - name: Build, pack, and run all checks
+        env:
+          JSS_SOURCE_REVISION: ${{ github.sha }}
+        run: mise exec -- bin/tests --out-dir artifacts
+      - name: Build native benchmark harness
+        run: mise exec -- bash scripts/build-benchmark-native.sh
+      - uses: actions/upload-artifact@v7
         with:
           name: npm-package
-          path: result-npm/*
+          path: artifacts/*
           if-no-files-found: error
 
   publish:
@@ -38,21 +70,22 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: jdx/mise-action@v5
         with:
-          node-version: '24'
-          registry-url: https://registry.npmjs.org
-          package-manager-cache: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+          version: "2026.11.8"
+          cache: true
+          cache_save: false
+          install_args: --locked node
+      - uses: actions/download-artifact@v8
         with:
           name: npm-package
           path: artifacts
-      - run: bin/publish --artifact artifacts/*.tgz
+      - run: mise exec -- bin/publish --artifact artifacts/*.tgz
       - name: Tag the published commit
         run: |
-          version=$(node -p 'require("./package.json").version')
+          version=$(mise exec -- node -p 'require("./package.json").version')
           git tag "v$version" "$GITHUB_SHA"
           git push origin "v$version"

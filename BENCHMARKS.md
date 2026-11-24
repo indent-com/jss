@@ -117,15 +117,16 @@ so these numbers cannot isolate the TypeScript binding's cost from WASM itself.
 
 ## Reproduce
 
-From the checkout with direnv enabled:
+From the checkout with `mise` installed:
 
 ```sh
-npm ci --ignore-scripts
-npm run build
-benchmark
+mise trust && mise install
+mise exec -- npm ci --ignore-scripts
+mise exec -- npm run build
+mise exec -- bin/benchmark
 ```
 
-The benchmark command builds the native harness through `flake.nix` and writes
+The benchmark command builds the native harness through `scripts/build-benchmark-native.sh` and writes
 this document plus [raw samples and metadata](benchmarks/results.json). It is
 manual, outside CI correctness checks, and adds no npm runtime dependency.
 On Linux, a caller can use `taskset -c CPU_LIST benchmark` to select CPUs;

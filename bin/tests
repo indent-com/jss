@@ -1,4 +1,87 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-exec nix flake check --no-update-lock-file --print-build-logs "$@"
+repo_root="$PWD"
+
+out_dir=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help|-h)
+      cat <<'EOF'
+Usage: bin/tests [--out-dir DIR]
+Build @indent-com/jss, pack the npm tarball, and run all checks against it:
+  1. WASM + TypeScript build (npm run build)
+  2. Tarball pack + release metadata (scripts/pack.mjs)
+  3. Runtime tests (test/publish.test.mjs + installed tarball via test/package.mjs)
+  4. Package dry-run check (bin/publish --dry-run --artifact)
+  5. Consumer TypeScript types check (test/types.mts against installed tarball)
+  6. Examples tests (examples/runner.test.mjs)
+  7. Browser tests (Playwright via test/browser.mjs against tarball)
+EOF
+      exit 0
+      ;;
+    --out-dir)
+      if [[ $# -lt 2 ]]; then
+        printf 'tests: missing value for --out-dir\n' >&2
+        exit 2
+      fi
+      out_dir="$2"
+      shift 2
+      ;;
+    *)
+      printf 'tests: unknown argument: %s\n' "$1" >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ ! -d node_modules ]]; then
+  printf 'tests: node_modules is missing; run `npm ci --ignore-scripts` first\n' >&2
+  exit 1
+fi
+
+work_dir=$(mktemp -d "${TMPDIR:-/tmp}/jss-tests.XXXXXX")
+trap 'rm -rf "$work_dir"' EXIT
+
+if [[ -n "$out_dir" ]]; then
+  rm -rf "$out_dir"
+  mkdir -p "$out_dir"
+  artifact_dir="$out_dir"
+else
+  artifact_dir="$work_dir/artifacts"
+  mkdir -p "$artifact_dir"
+fi
+
+printf '==> [1/7] Building WASM engine and TypeScript package\n'
+npm run build
+
+printf '==> [2/7] Packing npm tarball and release metadata\n'
+tarball=$(node scripts/pack.mjs "$artifact_dir")
+
+printf '==> [3/7] Running publisher and installed-package runtime tests\n'
+node --test test/publish.test.mjs
+node test/package.mjs "$tarball"
+
+printf '==> [4/7] Running package dry-run validation\n'
+node bin/publish --dry-run --artifact "$tarball"
+
+printf '==> [5/7] Running consumer TypeScript types check\n'
+consumer_dir="$work_dir/consumer"
+mkdir -p "$consumer_dir"
+printf '{"private":true,"type":"module"}\n' > "$consumer_dir/package.json"
+npm install --prefix "$consumer_dir" --offline --ignore-scripts --no-audit --no-fund "$tarball"
+cp test/types.mts "$consumer_dir/types.mts"
+(
+  cd "$consumer_dir"
+  "$repo_root/node_modules/.bin/tsc" --noEmit --strict --skipLibCheck \
+    --target ES2022 --module NodeNext --moduleResolution NodeNext \
+    --typeRoots "$repo_root/node_modules/@types" types.mts
+)
+
+printf '==> [6/7] Running examples tests\n'
+node --test examples/runner.test.mjs
+
+printf '==> [7/7] Running browser tests (%s)\n' "${JSS_BROWSERS:-chromium}"
+JSS_BROWSERS="${JSS_BROWSERS:-chromium}" node test/browser.mjs "$tarball"
+
+printf 'All checks passed.\n'

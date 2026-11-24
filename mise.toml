@@ -1,0 +1,21 @@
+# Toolchain for indent-com/jss (replaces Nix and direnv).
+#
+# Run `mise trust && mise install` once, then run commands with `mise exec -- <command>`
+# (or activate mise in your shell so `bin/` and `node_modules/.bin` are on PATH).
+# After bumping a tool version, refresh the lockfile across all supported platforms:
+#   mise lock --platform macos-arm64 --platform linux-x64 --platform linux-arm64
+
+[settings]
+lockfile = true
+
+[tools]
+node = "24.22.1"
+jq = "1.8.2"
+# Prebuilt Emscripten release archives (LLVM + Binaryen + Emscripten) from the official
+# emscripten-releases-tags.json mapping for 5.0.6 (commit 1724b50443d92e23ef2a56abf0dc501206839cef).
+"http:emscripten" = { version = "5.0.6", bin_path = "install/emscripten", platforms = { macos-arm64 = { url = "https://storage.googleapis.com/webassembly/emscripten-releases-builds/mac/1724b50443d92e23ef2a56abf0dc501206839cef/wasm-binaries-arm64.tar.xz" }, linux-x64 = { url = "https://storage.googleapis.com/webassembly/emscripten-releases-builds/linux/1724b50443d92e23ef2a56abf0dc501206839cef/wasm-binaries.tar.xz" }, linux-arm64 = { url = "https://storage.googleapis.com/webassembly/emscripten-releases-builds/linux/1724b50443d92e23ef2a56abf0dc501206839cef/wasm-binaries-arm64.tar.xz" } } }
+
+[env]
+_.path = ["node_modules/.bin", "bin"]
+EM_CACHE = "{{config_root}}/.cache/emscripten"
+EM_CONFIG = "{{config_root}}/scripts/emscripten-config.py"

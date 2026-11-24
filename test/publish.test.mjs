@@ -109,15 +109,25 @@ test('GitHub Actions publication requires a dispatch on main before registry acc
 
 function simulatedPublisher(t, { metadata, manifest = packageManifest } = {}) {
   const artifact = fixture(t, { metadata, manifest });
-  const directory = dirname(artifact), bin = join(directory, 'bin'), log = join(directory, 'commands.jsonl');
+  const directory = dirname(artifact), bin = join(directory, 'bin'), scripts = join(directory, 'scripts'), log = join(directory, 'commands.jsonl');
   mkdirSync(bin);
+  mkdirSync(scripts);
   mkdirSync(join(directory, 'elsewhere'));
-  mkdirSync(join(directory, 'result'));
-  writeFileSync(join(directory, 'result', 'stale.tgz'), 'not the new artifact');
+  mkdirSync(join(directory, 'artifacts'));
+  writeFileSync(join(directory, 'artifacts', 'stale.tgz'), 'not the new artifact');
   writeFileSync(join(directory, 'package.json'), JSON.stringify(manifest));
   copyFileSync(publisher, join(bin, 'publish'));
   chmodSync(join(bin, 'publish'), 0o755);
-  for (const tool of ['nix', 'npm', 'git']) {
+  const packScript = `import { appendFileSync, copyFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
+const out = process.argv[2];
+appendFileSync(process.env.PUBLISH_TEST_LOG, JSON.stringify({ tool: 'pack', args: [out], cwd: process.cwd() }) + '\\n');
+copyFileSync(process.env.PUBLISH_TEST_ARTIFACT, join(out, basename(process.env.PUBLISH_TEST_ARTIFACT)));
+copyFileSync(join(process.env.PUBLISH_TEST_OUTPUT, 'release.json'), join(out, 'release.json'));
+console.log(join(out, basename(process.env.PUBLISH_TEST_ARTIFACT)));
+`;
+  writeFileSync(join(scripts, 'pack.mjs'), packScript);
+  for (const tool of ['npm', 'git']) {
     const program = `#!${process.execPath}
 import { appendFileSync, readFileSync } from 'node:fs';
 const tool = ${JSON.stringify(tool)}, args = process.argv.slice(2);
@@ -125,11 +135,10 @@ const entry = { tool, args, cwd: process.cwd(),
   nodeToken: Boolean(process.env.NODE_AUTH_TOKEN), npmToken: Boolean(process.env.NPM_TOKEN) };
 if (tool === 'npm' && args[0] === 'publish') entry.stdin = readFileSync(0, 'utf8');
 appendFileSync(process.env.PUBLISH_TEST_LOG, JSON.stringify(entry) + '\\n');
-if (tool === 'nix') {
-  if (process.env.PUBLISH_TEST_BUILD_FAIL) { console.error('fixture build failed'); process.exit(7); }
-  console.log(process.env.PUBLISH_TEST_OUTPUT);
-} else if (tool === 'git') {
+if (tool === 'git') {
   if (args[0] === 'rev-parse') console.log('a'.repeat(40));
+} else if (args[0] === 'run' && args[1] === 'build') {
+  if (process.env.PUBLISH_TEST_BUILD_FAIL) { console.error('fixture build failed'); process.exit(7); }
 } else if (args[0] === '--version') console.log('11.6.0');
 else if (args[0] === 'view') {
   if (process.env.PUBLISH_TEST_EXISTING) console.log(JSON.stringify(process.env.PUBLISH_TEST_EXISTING));
@@ -148,27 +157,31 @@ else throw new Error('Unexpected command');
         env: { ...process.env, GITHUB_ACTIONS: 'false',
           NODE_AUTH_TOKEN: 'fixture-node-token', NPM_TOKEN: 'fixture-npm-token',
           PATH: [bin, dirname(process.execPath), process.env.PATH].filter(Boolean).join(delimiter),
-          PUBLISH_TEST_LOG: log, PUBLISH_TEST_OUTPUT: directory, ...env },
+          PUBLISH_TEST_LOG: log, PUBLISH_TEST_OUTPUT: directory, PUBLISH_TEST_ARTIFACT: artifact, ...env },
       });
     },
     calls() { return readFileSync(log, 'utf8').trim().split('\n').map(line => JSON.parse(line)); },
   };
 }
 
-test('plain publish builds the current Nix artifact and publishes locally with npm auth and terminal input', t => {
+test('plain publish builds and packs a fresh artifact and publishes locally with npm auth and terminal input', t => {
   const fixture = simulatedPublisher(t);
   const result = fixture.run();
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Published @indent-com\/jss@/);
   const calls = fixture.calls();
-  assert.deepEqual(calls.map(call => call.tool), ['nix', 'npm', 'npm']);
-  assert.deepEqual(calls[0].args, ['build', '.#npm', '--no-update-lock-file', '--no-link', '--print-out-paths']);
+  assert.deepEqual(calls.map(call => call.tool), ['npm', 'pack', 'npm', 'npm']);
+  assert.deepEqual(calls[0].args, ['run', 'build']);
   assert.equal(calls[0].cwd, fixture.directory);
+  assert.equal(calls[1].cwd, fixture.directory);
   const tag = packageManifest.version.includes('-') ? 'next' : 'latest';
-  assert.deepEqual(calls[2].args, ['publish', fixture.artifact, '--ignore-scripts', '--access', 'public', '--tag', tag, '--registry', 'https://registry.npmjs.org/']);
-  assert.equal(calls[2].nodeToken, true);
-  assert.equal(calls[2].npmToken, true);
-  assert.equal(calls[2].stdin, 'fixture-otp\n');
+  assert.equal(calls[3].args[0], 'publish');
+  assert.ok(calls[3].args[1].endsWith(`indent-com-jss-${packageManifest.version}.tgz`));
+  assert.notEqual(dirname(calls[3].args[1]), join(fixture.directory, 'artifacts'));
+  assert.deepEqual(calls[3].args.slice(2), ['--ignore-scripts', '--access', 'public', '--tag', tag, '--registry', 'https://registry.npmjs.org/']);
+  assert.equal(calls[3].nodeToken, true);
+  assert.equal(calls[3].npmToken, true);
+  assert.equal(calls[3].stdin, 'fixture-otp\n');
 });
 
 test('publish dry-run builds automatically and keeps npm offline', t => {
@@ -176,23 +189,24 @@ test('publish dry-run builds automatically and keeps npm offline', t => {
   const result = fixture.run(['--dry-run']);
   assert.equal(result.status, 0, result.stderr);
   const calls = fixture.calls();
-  assert.deepEqual(calls.map(call => call.tool), ['nix', 'npm']);
-  assert.deepEqual(calls[1].args.slice(-2), ['--dry-run', '--offline']);
+  assert.deepEqual(calls.map(call => call.tool), ['npm', 'pack', 'npm']);
+  assert.deepEqual(calls[2].args.slice(-2), ['--dry-run', '--offline']);
 });
 
-test('an explicit artifact skips Nix for local publishing', t => {
+test('an explicit artifact skips building for local publishing', t => {
   const fixture = simulatedPublisher(t);
   const result = fixture.run(['--artifact', fixture.artifact]);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(fixture.calls().map(call => call.tool), ['npm', 'npm']);
 });
 
-test('a failed automatic build never reaches npm', t => {
+test('a failed automatic build never reaches pack or npm publish', t => {
   const fixture = simulatedPublisher(t);
   const result = fixture.run([], { PUBLISH_TEST_BUILD_FAIL: '1' });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /fixture build failed/);
-  assert.deepEqual(fixture.calls().map(call => call.tool), ['nix']);
+  assert.deepEqual(fixture.calls().map(call => call.tool), ['npm']);
+  assert.deepEqual(fixture.calls()[0].args, ['run', 'build']);
 });
 
 test('local publishing retains registry integrity checks for existing versions', t => {
@@ -201,7 +215,7 @@ test('local publishing retains registry integrity checks for existing versions',
   const result = fixture.run([], { PUBLISH_TEST_EXISTING: metadata.integrity });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /identical artifact is already published/);
-  assert.deepEqual(fixture.calls().map(call => call.args[0]), ['build', 'view']);
+  assert.deepEqual(fixture.calls().map(call => [call.tool, call.args[0]]), [['npm', 'run'], ['pack', fixture.calls()[1].args[0]], ['npm', 'view']]);
 });
 
 test('CI publishes the supplied artifact with OIDC provenance and no rebuild', t => {
@@ -215,7 +229,7 @@ test('CI publishes the supplied artifact with OIDC provenance and no rebuild', t
   });
   assert.equal(result.status, 0, result.stderr);
   const calls = fixture.calls();
-  assert.ok(!calls.some(call => call.tool === 'nix'));
+  assert.ok(!calls.some(call => call.tool === 'pack' || (call.tool === 'npm' && call.args[0] === 'run')));
   const publish = calls.find(call => call.tool === 'npm' && call.args[0] === 'publish');
   assert.equal(publish.args.at(-1), '--provenance');
   assert.equal(publish.nodeToken, false);

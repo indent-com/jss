@@ -232,25 +232,29 @@ The [design and implementation document](docs/design.md) describes the ownership
 scheduling, bridge and release contracts. QuickJS source is vendored under
 `vendor/quickjs`, with its revision and archive checksum in
 [UPSTREAM.md](vendor/quickjs/UPSTREAM.md). The bridge is maintained separately.
-With direnv and nix-direnv installed, `.envrc` loads the pinned toolchain and adds
-`bin/` to PATH. Only maintainer-facing commands belong there; build and vendoring
-helpers live in `scripts/`, and test runners live in `test/`.
+With [mise](https://mise.jdx.dev/) installed, `mise.toml` and `mise.lock` pin
+Node, Emscripten, and `jq`, configure `EM_CACHE`, and add `bin/` and
+`node_modules/.bin` to PATH. Only maintainer-facing commands belong in `bin/`;
+build and vendoring helpers live in `scripts/`, and test runners live in `test/`.
 
 ```sh
-direnv allow
-tests                     # build and run each suite once against the npm tarball
-nix build .#npm --out-link result-npm
+mise trust && mise install
+mise exec -- npm ci --ignore-scripts
+mise exec -- npx playwright install chromium
+mise exec -- bin/tests        # build, pack, and run each suite once against the npm tarball
+mise exec -- node scripts/pack.mjs artifacts
 ```
 
-For local iteration, `npm ci --ignore-scripts` and `npm run build` prepare `dist/`;
-`npm test` runs the Node tests and `npm run test:browser` runs browser tests.
-`nix build` produces the ESM, declarations and WASM without running tests.
+For local iteration, `mise exec -- npm run build` prepares `dist/`;
+`mise exec -- npm test` runs the Node tests and `mise exec -- npm run test:browser`
+runs browser tests.
 
-Nix pins the compiler and npm dependency inputs. The WASM build uses vendored
-source, `-Oz` size optimization and a build-local Emscripten cache. Size is
-prioritized over peak execution speed; JavaScript features and resource-limit
-checks remain enabled. Reproducible inputs are established by
-the lock files; byte-for-byte reproducibility needs a separate rebuild comparison.
+`mise.lock` and `package-lock.json` pin the compiler and npm dependency inputs.
+The WASM build uses vendored source, `-Oz` size optimization and a build-local
+Emscripten cache (`.cache/emscripten`). Size is prioritized over peak execution
+speed; JavaScript features and resource-limit checks remain enabled.
+Reproducible inputs are established by the lock files; byte-for-byte
+reproducibility needs a separate rebuild comparison.
 
 Runtime tests exercise both execution modes. Dangerous loops, promise chains,
 memory/stack exhaustion and cancellation run under an independent process
@@ -300,26 +304,28 @@ to create a fresh guest realm.
 
 ## Benchmarks
 
-Run `benchmark` after building to measure compute, promises, public calls
-and async host callbacks against native QuickJS-NG, Node.js and a Node worker.
-It builds the native harness through Nix and writes [BENCHMARKS.md](BENCHMARKS.md)
-with timings, ratios, batch counts and environment details. Benchmarks run
-manually, outside CI correctness checks. Binary copy round trips and full guest
-buffer scans are measured separately; buffer preparation is outside the timer.
-Both `bin/tests` and `bin/benchmark` are available on PATH through direnv;
-`tests` forwards additional arguments to `nix flake check`.
+Run `mise exec -- bin/benchmark` after building to measure compute, promises,
+public calls and async host callbacks against native QuickJS-NG, Node.js and a
+Node worker. It builds the native harness through
+`scripts/build-benchmark-native.sh` (using `${CC:-cc}`) and writes
+[BENCHMARKS.md](BENCHMARKS.md) with timings, ratios, batch counts and
+environment details. Benchmarks run manually, outside CI correctness checks.
+Binary copy round trips and full guest buffer scans are measured separately;
+buffer preparation is outside the timer. When `mise` is activated in your shell,
+`tests`, `benchmark`, and `publish` are available on PATH directly.
 
 ## Release
 
 ```sh
-publish
+mise exec -- bin/publish
 ```
 
 `bin/publish` is a self-contained Node.js executable using only built-in modules.
-It builds `.#npm` through Nix, validates the tarball and its `release.json`, and
-publishes using your npm authentication. npm can prompt for authentication or
-2FA in the terminal. Use `publish --dry-run` to build and validate without a
-registry write, or `publish --artifact PATH` to use an existing tarball.
+It runs `npm run build` and `scripts/pack.mjs` into a fresh temporary directory,
+validates the tarball and its `release.json`, and publishes using your npm
+authentication. npm can prompt for authentication or 2FA in the terminal. Use
+`bin/publish --dry-run` to build and validate without a registry write, or
+`bin/publish --artifact PATH` to use an existing tarball.
 CI invokes `bin/publish --artifact PATH` for a `vX.Y.Z` tag matching the package
 version only after the build, installed-package and browser checks pass. It
 publishes the tested tarball with provenance, verifies its digest and release

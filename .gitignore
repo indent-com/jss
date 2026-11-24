@@ -1,4 +1,4 @@
 /.cache/
-/.direnv/
+/artifacts/
 /dist/
 /node_modules/
